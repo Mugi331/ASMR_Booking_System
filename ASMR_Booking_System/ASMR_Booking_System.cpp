@@ -830,8 +830,9 @@ int viewServicesAndExperts(const string serviceNames[], const string packageName
     const double servicePrices[][2], const double packagePrices[],
     const Expert experts[], int expertN, Service services[], int svcN) {
 
+	cout << "\n";   
     cout << u8"╔═══════════════════════════════════════════════════════╗\n";
-    cout << u8"║" <<setw(40) << right << "AVAILABLE SERVICES" << setw(19) << right << u8"║\n";
+    cout << u8"║" <<setw(35) << right << "AVAILABLE SERVICES" << setw(24) << right << u8"║\n";
     cout << u8"╚═══════════════════════════════════════════════════════╝\n";
 
     cout << left << setw(30) << "Service" << setw(12) << "1 Hour" << setw(12) << "2 Hours" << endl;
@@ -863,6 +864,7 @@ int viewServicesAndExperts(const string serviceNames[], const string packageName
         }
     }
 
+	cout << "\n";
     cout << u8"╔══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╗\n";
     cout << u8"║" << setw(55) << right << "OUR EXPERTS" << right << setw(67) << u8"║\n";
     cout << u8"╚══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╝\n";
@@ -946,12 +948,12 @@ int checkAppointmentAvailability(const string& dateInput, Booking bookings[], in
         << setw(25 - date.size()) << " " << u8"║\n";
     cout << u8"╠═══════════════════════════════════════════════════════╣\n";
 
-    cout << u8"║ " << setw(8) << left << "Time" << " │ ";
+    cout << u8"║ " << setw(8) << left << "Time" << u8" │ ";
 
     for (int i = 0; i < expertN; i++) {
         cout << setw(12) << left << experts[i].name;
         if (i != expertN - 1)
-            cout << " │ ";
+            cout << u8" │ ";
         else
             cout << u8" ║";
     }
@@ -1138,6 +1140,9 @@ bool bookAppointment(const string& customer, const string serviceNames[], const 
     double totalPrice = basePrice + serviceCharge;
     cout << fixed << setprecision(2);
     cout << "\n==== Payment Summary ====\n";
+    cout << u8"┌──────────────────────────────┐\n";
+    cout << u8"║   Payment Summary║\n";
+    cout << u8"╚════════════════════════════════════════  ════╝\n";
     cout << left << setw(20) << "Service/Package:" << "RM " << right << setw(8) << basePrice << "\n";
     cout << left << setw(20) << "16% Service Charge:" << "RM " << right << setw(8) << serviceCharge << "\n";
     cout << left << setw(20) << "Total to pay:" << "RM " << right << setw(8) << totalPrice << "\n";
@@ -1163,12 +1168,12 @@ bool bookAppointment(const string& customer, const string serviceNames[], const 
                 if (confirm.length() == 1) {
                     char c = tolower(confirm[0]);
                     if (c == 'y') {
-                        cout << "Payment successful! Booking completed!\n";
+                        cout << "\nPayment successful! Booking completed!\n";
                         paymentSuccess = true;
                         break;
                     }
                     else if (c == 'n') {
-                        cout << "Payment cancelled. Booking failed.\n";
+                        cout << "\nPayment cancelled. Booking failed.\n";
                         pauseForMenu();
                         return false;
                     }
@@ -1463,7 +1468,6 @@ int serviceIndexForExpertOnDay(int expertIndex, int dayOfMonth) {
 
 int viewIndividualSchedule(const Config& cfg, int expertId, Expert experts[], int expertN,
     Service services[], int svcN, Booking bookings[], int bkCount, const string& anyDate) {
-
     int y, m, d;
     if (!parseDate(anyDate, y, m, d))
         return 0;
@@ -1979,6 +1983,11 @@ int main() {
                     if (userIndex != -1)
                         break; // successful login
                 }
+                else if (custOption == 3) {
+                    cout << "\nReturning to main menu...\n" << endl;
+                    this_thread::sleep_for(chrono::seconds(1)); // Pause for 1 sec before returning to main menu
+                    break; // go back to role menu
+                }
             } while (custOption != 3);
 
             if (userIndex != -1) {
@@ -2023,7 +2032,8 @@ int main() {
                         pauseForMenu();
                         break;
                     case 6: // Logout
-                        cout << "Logging out...\n";
+                        cout << "Logging out..." << endl;
+                        this_thread::sleep_for(chrono::seconds(1));
                         break;
                     }
                 } while (custMenuChoice != 6);
@@ -2040,8 +2050,9 @@ int main() {
 
             int expertMenuChoice = -1;
             do {
+                goToPage();
                 cout << "\nWelcome, " << experts[idx].name << "!\n";
-                expertMenu();
+                expertMenuChoice = expertMenu();
 
                 switch (expertMenuChoice) {
                 case 1: {
@@ -2180,7 +2191,7 @@ int main() {
             }
             else {
                 cout << "\nReturning to main menu...\n" << endl;
-				this_thread::sleep_for(chrono::seconds(2)); // Pause for 2 seconds before returning to main menu
+				this_thread::sleep_for(chrono::seconds(1)); // Pause for 2 seconds before returning to main menu
             }
             break;
         }
