@@ -265,6 +265,7 @@ char getYesNoInput(const string& prompt) {
     while (true) {
         cout << prompt;
         cin >> input;
+        cin.get();
 
         if (input.length() == 1) {
             choice = tolower(input[0]);
@@ -330,16 +331,17 @@ string getValidDateInput() {
     while (true) {
         cout << "Enter appointment date (YYYY-MM-DD): ";
         cin >> date;
+        cin.get();
 
         if (date.size() != 10 || date[4] != '-' || date[7] != '-') {
-            cout << "Invalid date format! Use YYYY-MM-DD.\n";
+            cout << "Invalid date! Please enter a valid December 2025 date in YYYY-MM-DD format.\n";
             continue;
         }
 
         for (int i = 0; i < 10; i++) {
             if (i == 4 || i == 7) continue;
             if (!isdigit(date[i])) {
-                cout << "Invalid date format! Use YYYY-MM-DD.\n";
+                cout << "Invalid date! Please enter a valid December 2025 date in YYYY-MM-DD format.\n";
                 continue;
             }
         }
@@ -761,6 +763,7 @@ int registerUser(string usernames[], string passwords[], int& userCount) {
     cout << u8"╚═════════════════════════════════════════════╝";
     cout << "\nEnter new username: ";
     cin >> username;
+    cin.get();
 
     for (int i = 0; i < userCount; i++) {
         if (usernames[i] == username) {
@@ -772,6 +775,7 @@ int registerUser(string usernames[], string passwords[], int& userCount) {
     while (true) {
         cout << "Enter new password (6 digits): ";
         cin >> password;
+        cin.get();
 
         if (password.length() == 6) {
             bool allDigits = true;
@@ -808,6 +812,7 @@ int loginUser(const string usernames[], const string passwords[], int userCount)
 
     cout << left << setw(27) << "\nUsername (No empty spaces)" << " : ";
     cin >> username;
+    cin.get();
 
     // Validate username format
     if (!isAlphaNumeric(username)) {
@@ -817,6 +822,7 @@ int loginUser(const string usernames[], const string passwords[], int userCount)
 
     cout << left << setw(26) << "Password (6 digit)" << " : ";
     cin >> password;
+    cin.get();
 
     // Validate password format
     if (!isNumeric(password) || password.length() != 6) {
@@ -927,21 +933,25 @@ int checkAppointmentAvailability(const string& dateInput, Booking bookings[], in
         if (!parseDate(date, y, m, d)) {
             cout << "Invalid date format. Enter again (YYYY-MM-DD): ";
             cin >> date;
+            cin.get();
             continue;
         }
         if (y != 2025) {
             cout << "\nOnly dates in the year 2025 are allowed. Enter again: ";
             cin >> date;
+            cin.get();
             continue;
         }
         if (!isDecember(date)) {
             cout << "\nThis feature is only available for December 2025. Enter again: ";
             cin >> date;
+            cin.get();
             continue;
         }
         if (!isDecemberWeekday2025(date)) {
             cout << "\nOur massage center is closed on weekends. Enter a weekday: ";
             cin >> date;
+            cin.get();
             continue;
         }
         validDate = true;
@@ -1041,6 +1051,7 @@ bool bookAppointment(const string& customer, const string serviceNames[], const 
     while (true) {
         cout << "\nEnter appointment date (YYYY-MM-DD): ";
         cin >> inputDate;
+        cin.get();
         if (!isValidDate(inputDate) || !isDecember(inputDate) || isWeekend(inputDate)) {
             cout << "Invalid date! Only valid December 2025 weekdays allowed.\n";
             continue;
@@ -1188,6 +1199,7 @@ bool bookAppointment(const string& customer, const string serviceNames[], const 
             do {
                 cout << "\nEnter your phone number (e.g. 0123456789): ";
                 cin >> tngPhone;
+                cin.get();
                 if (!isValidPhone(tngPhone)) {
                     cout << "Invalid phone number! Please enter again.\n";
                 }
@@ -1197,6 +1209,7 @@ bool bookAppointment(const string& customer, const string serviceNames[], const 
             while (true) {
                 cout << "\nConfirm payment of RM" << totalPrice << "? (Y/N): ";
                 cin >> confirm;
+                cin.get();
                 if (confirm.length() == 1) {
                     char c = tolower(confirm[0]);
                     if (c == 'y') {
@@ -1237,11 +1250,13 @@ bool bookAppointment(const string& customer, const string serviceNames[], const 
             while (true) {
                 cout << "\nConfirm bank transfer of RM" << totalPrice << "? (Y/N): ";
                 cin >> confirm;
+                cin.get();
                 if (confirm.length() == 1) {
                     char c = tolower(confirm[0]);
                     if (c == 'y') {
                         cout << "\nBank transfer received. Booking completed!\n\a";
                         paymentSuccess = true;
+                        pauseForMenu();
                         break;
                     }
                     else if (c == 'n') {
@@ -1685,6 +1700,7 @@ int expertLogin(Expert experts[], int expertN) {
     string u, p;
     cout << "Expert login\nUsername: ";
     cin >> u;
+    cin.get();
 
     if (!isAlphaNumeric(u)) {
         cout << "Invalid username format!\n";
@@ -1693,6 +1709,7 @@ int expertLogin(Expert experts[], int expertN) {
 
     cout << "Password: ";
     cin >> p;
+    cin.get();
 
     if (!isAlphaNumeric(p)) {
         cout << "Invalid password format!\n";
@@ -1791,13 +1808,11 @@ bool adminLogin() {
 
         cout << "Password: ";
         cin >> aPass;
+        cin.get();
 
         if (aUsername == "admin123" && aPass == "abc123") {
             cout << "\nLogin successful. Welcome back, " << aUsername << " !\n";
-            string prompt = "Press ENTER to continue...";
-            bool empty = true;
-			getline(cin, aPass); // Clear newline from previous input
-			getString(prompt, empty);
+            pauseForMenu();
             return true; // Login successful, exit the loop
         }
         else {
@@ -1895,6 +1910,7 @@ int searchExpert(Expert experts[], int expertN) {
     std::string query;
     cout << "Enter expert name (or part of name): ";
     cin >> query;
+    cin.get();
 
     // to lowercase
     auto toLower = [](std::string s) {
@@ -2294,6 +2310,7 @@ int main() {
                         string checkDate;
                         cout << "Enter a December 2025 date to check availability (YYYY-MM-DD): ";
                         cin >> checkDate;
+                        cin.get();
 
                         // Validate date
                         if (!isValidDate(checkDate) || !isDecember(checkDate)) {
@@ -2329,6 +2346,10 @@ int main() {
             int idx = expertLogin(experts, expertN);
             if (idx < 0) {
                 cout << "Invalid login.\n";
+                string prompt = "Press ENTER to continue...";
+                bool empty = true;
+				string aPass;
+                pauseForMenu();
                 break;
             }
 
@@ -2343,15 +2364,18 @@ int main() {
                     string date;
                     cout << "\nEnter any December 2025 date (YYYY-MM-DD) in the week you want to view: ";
                     cin >> date;
+                    cin.get();
 
                     if (!isValidDate(date) || !isDecember(date)) {
                         cout << "Invalid date! Please enter a valid December 2025 date in YYYY-MM-DD format.\n";
+                        pauseForMenu();
                         break;
                     }
                     if (!isDecemberWeekday2025(date)) {
                         int y, m, d;
                         if (!parseDate(date, y, m, d) || y != 2025 || m != 12) {
                             cout << "Please enter a date in Dec 2025.\n";
+                            pauseForMenu();
                             break;
                         }
                     }
@@ -2366,15 +2390,18 @@ int main() {
                     string date;
                     cout << "\nEnter any December 2025 date (YYYY-MM-DD) in the week you want to view: ";
                     cin >> date;
+                    cin.get();
 
                     if (!isValidDate(date) || !isDecember(date)) {
                         cout << "Invalid date! Please enter a valid December 2025 date in YYYY-MM-DD format.\n";
+                        pauseForMenu();
                         break;
                     }
                     if (!isDecemberWeekday2025(date)) {
                         int y, m, d;
                         if (!parseDate(date, y, m, d) || y != 2025 || m != 12) {
                             cout << "Please enter a date in Dec 2025.\n";
+                            pauseForMenu();
                             break;
                         }
                     }
@@ -2385,6 +2412,7 @@ int main() {
                 case 3:
                     loadBooking(bookings, bkCount, experts, expertN);
                     viewEarningsBonus(cfg, idx, bookings, bkCount, services, svcN, experts);
+                    cin.get();
                     pauseForMenu();
                     break;
                 case 4: {
@@ -2400,6 +2428,7 @@ int main() {
 
                     if (expertBookingsCount == 0) {
                         cout << "No bookings found to sort.\n";
+                        pauseForMenu();
                         break;
                     }
 
@@ -2410,14 +2439,17 @@ int main() {
                         cout << displayResult;
                         delete[] sortedBookings;
                     }
+                    cin.get();
                     pauseForMenu();
                     break;
                 }
                 case 5:
                     cout << "Goodbye!\n";
+                    cin.get();
+                    pauseForMenu();
                     break;
                 }
-            } while (expertMenuChoice != 6);
+            } while (expertMenuChoice != 5);
             break;
         }
 
@@ -2488,6 +2520,7 @@ int main() {
                         while (true) {
                             cout << "Enter any December 2025 date (YYYY-MM-DD) for the week to view: ";
                             cin >> weekDate;
+                            cin.get();
                             // Use robust validation
                             if (isValidDate(weekDate) && isDecember(weekDate)) {
                                 int y, m, d;
@@ -2495,7 +2528,7 @@ int main() {
                                     break;
                                 }
                             }
-                            cout << "Invalid date! Please enter a date in the format 2025-12-DD.\n";
+                            cout << "Invalid date! Please enter a valid December 2025 date in YYYY-MM-DD format.\n";
                         }
                         string monday = mondayOfWeek(weekDate);
                         adminViewOverallSchedule(cfg, bookings, bkCount, experts, expertN, monday);
@@ -2504,17 +2537,20 @@ int main() {
                     }
                     case 3:
                         viewCustomerList(bookings, bkCount, experts, expertN, services, svcN);
+                        cin.get();
                         pauseForMenu();
                         break;
                     case 4:
                         cout << "\n=== Sales Report ===\n";
                         cout << "Total Sales: RM" << fixed << setprecision(2) << adminGenerateSalesReport(bookings, bkCount) << "\n";
+                        cin.get();
                         pauseForMenu();
                         break;
                     case 5: {
                         int id;
                         cout << "Enter Expert ID (0: June, 1: Bryan, 2: Amy): ";
                         cin >> id;
+                        cin.get();
                         cout << "Expert Bonus: RM" << fixed << setprecision(2) << adminViewExpertBonus(bookings, bkCount, experts, expertN, id) << "\n";
                         pauseForMenu();
                         break;
@@ -2522,6 +2558,7 @@ int main() {
                     case 6:
                         cout << "\n=== Monthly Summary Report ===\n";
                         cout << "Total Sales: RM" << fixed << setprecision(2) << adminMonthlySummary(bookings, bkCount) << "\n";
+						cin.get();
                         pauseForMenu();
                         break;
                     case 7: {
@@ -2529,6 +2566,7 @@ int main() {
                         while (true) {
                             cout << "Enter any December 2025 date (YYYY-MM-DD) for the week to view: ";
                             cin >> weekDate;
+                            cin.get();
                             // Check for empty input
                             if (weekDate.empty()) {
                                 cout << "Date cannot be empty!\n";
@@ -2541,7 +2579,7 @@ int main() {
                                     break;
                                 }
                             }
-                            cout << "Invalid date! Please enter a date in the format 2025-12-DD.\n";
+                            cout << "Invalid date! Please enter a valid December 2025 date in YYYY-MM-DD format.\n";
                         }
                         string monday = mondayOfWeek(weekDate);
                         string friday = addDays(monday, 4);
@@ -2549,7 +2587,6 @@ int main() {
                         if (!ok) {
                             cout << "Failed to display sales report for the selected week.\n";
                         }
-                        cin.get();
                         pauseForMenu();
                         break;
                     }
