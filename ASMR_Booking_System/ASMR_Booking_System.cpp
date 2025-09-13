@@ -373,128 +373,6 @@ bool isWithinWeek(const string& date, const string& weekStartDate) {
     return monday == weekStartDate;
 }
 
-// Overload for viewIndividualSchedule to match the call in adminViewOverallSchedule
-void viewIndividualScheduleApp(const Config& cfg, Booking bookings[], int bkCount, const Expert& expert, const string& weekStartDate) {
-    int occLen = cfg.closeHour - cfg.openHour;
-    cout << left << setw(12) << "Date";
-    for (int h = cfg.openHour; h < cfg.closeHour; ++h) {
-        cout << setw(8) << (to_string(h) + ":00");
-    }
-    cout << setw(20) << "Assigned Service" << setw(15) << "Day Total" << "\n";
-    cout << string(12 + occLen * 8 + 35, '-') << "\n";
-
-    int weeklyBookedMin = 0;
-    for (int d = 0; d < 5; ++d) {
-        string day = addDays(weekStartDate, d);
-        int yy, mm, dd;
-        parseDate(day, yy, mm, dd);
-
-        // Assigned service logic (rotating every 3 days)
-        int expertIndex = expert.id;
-        int svcIndex = serviceIndexForExpertOnDay(expertIndex, dd);
-        string assignedService;
-        switch (svcIndex) {
-            case 0: assignedService = "Foot Massage (Reflexology)"; break;
-            case 1: assignedService = "Full Body Massage"; break;
-            case 2: assignedService = "Hot Stone Massage"; break;
-            default: assignedService = "N/A";
-        }
-        string displayName = assignedService;
-        size_t pos = displayName.find(" (");
-        if (pos != string::npos) displayName = displayName.substr(0, pos);
-
-        int occ[24] = { 0 };
-        int dayBookedMin = 0;
-        for (int b = 0; b < bkCount; ++b) {
-            if (bookings[b].expertId == expert.id && bookings[b].date == day) {
-                int st = static_cast<int>(bookings[b].startTime);
-                int durH = (bookings[b].durationMin + 59) / 60;
-                for (int h = 0; h < durH; ++h) {
-                    int idx = st + h - cfg.openHour;
-                    if (idx >= 0 && idx < occLen) occ[idx] = 1;
-                }
-                dayBookedMin += bookings[b].durationMin;
-            }
-        }
-
-        cout << left << setw(12) << day;
-        for (int i = 0; i < occLen; ++i) {
-            string label = occ[i] ? "Booked" : "Free  ";
-            cout << setw(8) << label;
-        }
-        cout << setw(20) << displayName << fixed << setprecision(2)
-            << (dayBookedMin / 60.0) << "h / " << (cfg.dayLimitMin / 60.0) << "h\n";
-        cout << string(12 + occLen * 8 + 35, '-') << "\n";
-        weeklyBookedMin += dayBookedMin;
-    }
-}
-
-// Admin overall schedule function
-int adminViewOverallSchedule(const Config& cfg, Booking bookings[], int bkCount, Expert experts[], int expertN, const string& weekStartDate) {
-    if (bkCount == 0) {
-        cout << "\nNo bookings found.\n";
-        return 0;
-    }
-
-    cout << "\n";
-    cout << u8"╔════════════════════════════════════════════════════════════╗\n";
-    cout << u8"║               Overall Schedule (Weekly View)               ║\n";
-    cout << u8"╚════════════════════════════════════════════════════════════╝\n\n";
-
-    // 1. Print each expert's weekly timetable
-    for (int e = 0; e < expertN; e++) {
-        cout << "\n====================================================\n";
-        cout << "Expert: " << experts[e].name << "\n";
-        cout << "====================================================\n";
-        viewIndividualScheduleApp(cfg, bookings, bkCount, experts[e], weekStartDate);
-    }
-
-    // 2. Summary table
-    cout << "\n";
-    cout << u8"╔════════════════════════════════════════════════════════════╗\n";
-    cout << u8"║              Weekly Summary of Expert Workload             ║\n";
-    cout << u8"╚════════════════════════════════════════════════════════════╝\n\n";
-
-    cout << left << setw(15) << "Expert"
-        << setw(10) << "Bookings"
-        << setw(15) << "Service Hrs"
-        << setw(18) << "Consultation Hrs"
-        << setw(15) << "Total Hrs" << "\n";
-
-    cout << string(73, '-') << "\n";
-
-    for (int e = 0; e < expertN; e++) {
-        int bookingCount = 0;
-        double serviceHours = 0.0;
-        double consultHours = 0.0;
-
-        for (int b = 0; b < bkCount; b++) {
-            if (bookings[b].expertId == experts[e].id &&
-                isWithinWeek(bookings[b].date, weekStartDate)) {
-
-                bookingCount++;
-                serviceHours += (bookings[b].durationMin / 60.0);
-
-                if (bookings[b].hasConsultation) {
-                    consultHours += 1.0; // assuming consultation = 1h
-                }
-            }
-        }
-
-        double totalHours = serviceHours + consultHours;
-
-        cout << left << setw(15) << experts[e].name
-            << setw(10) << bookingCount
-            << setw(15) << fixed << setprecision(1) << serviceHours
-            << setw(18) << consultHours
-            << setw(15) << totalHours << "\n";
-    }
-
-    cout << string(73, '=') << "\n";
-
-    return 1;
-}
-
 // ================ Helper Functions =================
 string to_string_with_precision(double value, int precision) {
     ostringstream out;
@@ -1973,9 +1851,168 @@ int adminViewExpertSchedule(const Config& cfg, int expertId, Expert experts[], i
     viewIndividualSchedule(cfg, expertId, experts, expertN, services, svcN, bookings, bkCount, date);
     return 1;
 }
+// Overload for viewIndividualSchedule to match the call in adminViewOverallSchedule
+void viewIndividualScheduleApp(const Config& cfg, Booking bookings[], int bkCount, const Expert& expert, const string& weekStartDate) {
+    int occLen = cfg.closeHour - cfg.openHour;
+    cout << left << setw(12) << "Date";
+    for (int h = cfg.openHour; h < cfg.closeHour; ++h) {
+        cout << setw(8) << (to_string(h) + ":00");
+    }
+    cout << setw(20) << "Assigned Service" << setw(15) << "Day Total" << "\n";
+    cout << string(12 + occLen * 8 + 35, '-') << "\n";
+
+    int weeklyBookedMin = 0;
+    for (int d = 0; d < 5; ++d) {
+        string day = addDays(weekStartDate, d);
+        int yy, mm, dd;
+        parseDate(day, yy, mm, dd);
+
+        // Assigned service logic (rotating every 3 days)
+        int expertIndex = expert.id;
+        int svcIndex = serviceIndexForExpertOnDay(expertIndex, dd);
+        string assignedService;
+        switch (svcIndex) {
+        case 0: assignedService = "Foot Massage (Reflexology)"; break;
+        case 1: assignedService = "Full Body Massage"; break;
+        case 2: assignedService = "Hot Stone Massage"; break;
+        default: assignedService = "N/A";
+        }
+        string displayName = assignedService;
+        size_t pos = displayName.find(" (");
+        if (pos != string::npos) displayName = displayName.substr(0, pos);
+
+        int occ[24] = { 0 };
+        int dayBookedMin = 0;
+        for (int b = 0; b < bkCount; ++b) {
+            if (bookings[b].expertId == expert.id && bookings[b].date == day) {
+                int st = static_cast<int>(bookings[b].startTime);
+                int durH = (bookings[b].durationMin + 59) / 60;
+                for (int h = 0; h < durH; ++h) {
+                    int idx = st + h - cfg.openHour;
+                    if (idx >= 0 && idx < occLen) occ[idx] = 1;
+                }
+                dayBookedMin += bookings[b].durationMin;
+            }
+        }
+
+        cout << left << setw(12) << day;
+        for (int i = 0; i < occLen; ++i) {
+            string label = occ[i] ? "Booked" : "Free  ";
+            cout << setw(8) << label;
+        }
+        cout << setw(20) << displayName << fixed << setprecision(2)
+            << (dayBookedMin / 60.0) << "h / " << (cfg.dayLimitMin / 60.0) << "h\n";
+        cout << string(12 + occLen * 8 + 35, '-') << "\n";
+        weeklyBookedMin += dayBookedMin;
+    }
+}
+// Help function
+int searchExpert(Expert experts[], int expertN) {
+    std::string query;
+    cout << "Enter expert name (or part of name): ";
+    cin >> query;
+
+    // to lowercase
+    auto toLower = [](std::string s) {
+        for (auto& c : s) c = std::tolower(c);
+        return s;
+        };
+    std::string q = toLower(query);
+
+    int matches[50];   // assume max 50 experts
+    int matchCount = 0;
+
+    for (int i = 0; i < expertN; i++) {
+        std::string nameLower = toLower(experts[i].name);
+        if (nameLower.find(q) != std::string::npos) {
+            matches[matchCount++] = i;
+        }
+    }
+
+    if (matchCount == 0) {
+        cout << "No experts found for query: " << query << "\n";
+        return -1;
+    }
+
+    if (matchCount == 1) {
+        return experts[matches[0]].id;
+    }
+
+    cout << "\nMultiple matches found:\n";
+    for (int i = 0; i < matchCount; i++) {
+        cout << (i + 1) << ". " << experts[matches[i]].name
+            << " (ID: " << experts[matches[i]].id << ")\n";
+    }
+
+    int choice = getValidNumericInput("Select expert: ", 1, matchCount);
+    return experts[matches[choice - 1]].id;
+}
 
 // 2. View Overall Schedule
+int adminViewOverallSchedule(const Config& cfg, Booking bookings[], int bkCount, Expert experts[], int expertN, const string& weekStartDate) {
+    if (bkCount == 0) {
+        cout << "\nNo bookings found.\n";
+        return 0;
+    }
 
+    cout << "\n";
+    cout << u8"╔════════════════════════════════════════════════════════════╗\n";
+    cout << u8"║               Overall Schedule (Weekly View)               ║\n";
+    cout << u8"╚════════════════════════════════════════════════════════════╝\n\n";
+
+    // 1. Print each expert's weekly timetable
+    for (int e = 0; e < expertN; e++) {
+        cout << "\n====================================================\n";
+        cout << "Expert: " << experts[e].name << "\n";
+        cout << "====================================================\n";
+        viewIndividualScheduleApp(cfg, bookings, bkCount, experts[e], weekStartDate);
+    }
+
+    // 2. Summary table
+    cout << "\n";
+    cout << u8"╔════════════════════════════════════════════════════════════╗\n";
+    cout << u8"║              Weekly Summary of Expert Workload             ║\n";
+    cout << u8"╚════════════════════════════════════════════════════════════╝\n\n";
+
+    cout << left << setw(15) << "Expert"
+        << setw(10) << "Bookings"
+        << setw(15) << "Service Hrs"
+        << setw(18) << "Consultation Hrs"
+        << setw(15) << "Total Hrs" << "\n";
+
+    cout << string(73, '-') << "\n";
+
+    for (int e = 0; e < expertN; e++) {
+        int bookingCount = 0;
+        double serviceHours = 0.0;
+        double consultHours = 0.0;
+
+        for (int b = 0; b < bkCount; b++) {
+            if (bookings[b].expertId == experts[e].id &&
+                isWithinWeek(bookings[b].date, weekStartDate)) {
+
+                bookingCount++;
+                serviceHours += (bookings[b].durationMin / 60.0);
+
+                if (bookings[b].hasConsultation) {
+                    consultHours += 1.0; // assuming consultation = 1h
+                }
+            }
+        }
+
+        double totalHours = serviceHours + consultHours;
+
+        cout << left << setw(15) << experts[e].name
+            << setw(10) << bookingCount
+            << setw(15) << fixed << setprecision(1) << serviceHours
+            << setw(18) << consultHours
+            << setw(15) << totalHours << "\n";
+    }
+
+    cout << string(73, '=') << "\n";
+
+    return 1;
+}
 
 // 3. View Customer List
 void viewCustomerList(Booking bookings[], int bkCount, Expert experts[], int expertN, Service services[], int svcN) {
@@ -1985,9 +2022,9 @@ void viewCustomerList(Booking bookings[], int bkCount, Expert experts[], int exp
     }
 
 	cout << "\n";
-    cout << u8"╔══════════════════════════════════════════════════════════════╗\n";
-    cout << u8"║                     Customer Booking List                    ║\n";
-    cout << u8"╚══════════════════════════════════════════════════════════════╝\n\n";
+    cout << u8"╔═════════════════════════════════════════════════════╗\n";
+    cout << u8"║                Customer Booking List                ║\n";
+    cout << u8"╚═════════════════════════════════════════════════════╝\n\n";
 
     // Collect unique customers
     string customers[100]; 
