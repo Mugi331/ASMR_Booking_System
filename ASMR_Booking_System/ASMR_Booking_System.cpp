@@ -2319,12 +2319,10 @@ int main() {
                         while (true) {
                             cout << "Enter any December 2025 date (YYYY-MM-DD) for the week to view: ";
                             cin >> weekDate;
-                            // Validate format: must be 2025-12-DD
-                            if (weekDate.size() == 10 &&
-                                weekDate.substr(0, 7) == "2025-12-" &&
-                                isdigit(weekDate[8]) && isdigit(weekDate[9])) {
-                                int day = stoi(weekDate.substr(8, 2));
-                                if (day >= 1 && day <= 31) {
+                            // Use robust validation
+                            if (isValidDate(weekDate) && isDecember(weekDate)) {
+                                int y, m, d;
+                                if (parseDate(weekDate, y, m, d) && y == 2025 && m == 12 && d >= 1 && d <= 31) {
                                     break;
                                 }
                             }
