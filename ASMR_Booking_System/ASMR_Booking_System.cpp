@@ -1842,11 +1842,10 @@ int adminMenu() {
     cout << u8"║ 4. Generate Sales Report               ║\n";
     cout << u8"║ 5. View Expert Bonus Entitlement       ║\n";
     cout << u8"║ 6. Monthly Summary Report              ║\n";
-    cout << u8"║ 7. Sales Report                        ║\n";
-    cout << u8"║ 8. Logout                              ║\n";
+    cout << u8"║ 7. Logout                              ║\n";
     cout << u8"╚════════════════════════════════════════╝\n";
 
-    return getValidNumericInput("\nSelect: ", 1, 8);
+    return getValidNumericInput("\nSelect: ", 1, 7);
     pauseForMenu();
 }
 
@@ -1905,6 +1904,7 @@ void viewIndividualScheduleApp(const Config& cfg, Booking bookings[], int bkCoun
         weeklyBookedMin += dayBookedMin;
     }
 }
+
 // Help function
 int searchExpert(Expert experts[], int expertN) {
     std::string query;
@@ -2185,19 +2185,20 @@ bool adminSalesReport(const Booking bookings[], int bkCount, const Expert expert
     cout << u8"╔════════════════════════════════════════════════════════════════════════════════════╗\n";
     cout << u8"║ Expert         │ Consultation (RM) │ Treatment (RM) │ Package (RM) │ Subtotal (RM) ║\n";
     cout << u8"╟────────────────┼───────────────────┼────────────────┼──────────────┼───────────────╢\n";
+    cout << fixed << setprecision(2);
     for (int e = 0; e < expertN; ++e) {
         cout << u8"║ " << left << setw(15) << experts[e].name
-            << u8"│ " << right << setw(17) << (int)consultation[e]
-            << u8" │ " << right << setw(14) << (int)treatment[e]
-            << u8" │ " << right << setw(12) << (int)packageAmt[e]
-            << u8" │ " << right << setw(13) << (int)subtotal[e]
+            << u8"│ " << right << setw(17) << consultation[e]
+            << u8" │ " << right << setw(14) << treatment[e]
+            << u8" │ " << right << setw(12) << packageAmt[e]
+            << u8" │ " << right << setw(13) << subtotal[e]
             << u8" ║\n";
     }
     cout << u8"╟────────────────┼───────────────────┼────────────────┼──────────────┼───────────────╢\n";
-    cout << u8"║ TOTAL          │ " << right << setw(17) << (int)totalConsult
-        << u8" │ " << right << setw(14) << (int)totalTreat
-        << u8" │ " << right << setw(12) << (int)totalPack
-        << u8" │ " << right << setw(13) << (int)totalAll
+    cout << u8"║ TOTAL          │ " << right << setw(17) << totalConsult
+        << u8" │ " << right << setw(14) << totalTreat
+        << u8" │ " << right << setw(12) << totalPack
+        << u8" │ " << right << setw(13) << totalAll
         << u8" ║\n";
     cout << u8"╚════════════════════════════════════════════════════════════════════════════════════╝\n";
     return true;
@@ -2540,28 +2541,7 @@ int main() {
                         cin.get();
                         pauseForMenu();
                         break;
-                    case 4:
-                        cout << "\n=== Sales Report ===\n";
-                        cout << "Total Sales: RM" << fixed << setprecision(2) << adminGenerateSalesReport(bookings, bkCount) << "\n";
-                        cin.get();
-                        pauseForMenu();
-                        break;
-                    case 5: {
-                        int id;
-                        cout << "Enter Expert ID (0: June, 1: Bryan, 2: Amy): ";
-                        cin >> id;
-                        cin.get();
-                        cout << "Expert Bonus: RM" << fixed << setprecision(2) << adminViewExpertBonus(bookings, bkCount, experts, expertN, id) << "\n";
-                        pauseForMenu();
-                        break;
-                    }
-                    case 6:
-                        cout << "\n=== Monthly Summary Report ===\n";
-                        cout << "Total Sales: RM" << fixed << setprecision(2) << adminMonthlySummary(bookings, bkCount) << "\n";
-						cin.get();
-                        pauseForMenu();
-                        break;
-                    case 7: {
+                    case 4: {
                         string weekDate;
                         while (true) {
                             cout << "Enter any December 2025 date (YYYY-MM-DD) for the week to view: ";
@@ -2590,12 +2570,28 @@ int main() {
                         pauseForMenu();
                         break;
                     }
-                    case 8:
+                    case 5: {
+                        int id;
+                        cout << "Enter Expert ID (0: June, 1: Bryan, 2: Amy): ";
+                        cin >> id;
+                        cin.get();
+                        cout << "Expert Bonus: RM" << fixed << setprecision(2) << adminViewExpertBonus(bookings, bkCount, experts, expertN, id) << "\n";
+                        pauseForMenu();
+                        break;
+                    }
+                    case 6:
+                        cout << "\n=== Monthly Summary Report ===\n";
+                        cout << "Total Sales: RM" << fixed << setprecision(2) << adminMonthlySummary(bookings, bkCount) << "\n";
+						cin.get();
+                        pauseForMenu();
+                        break;
+                    case 7: {
                         cout << "\nLogging out admin system..." << endl;
                         this_thread::sleep_for(chrono::seconds(1));
                         break;
                     }
-                } while (adminMenuChoice != 8);
+                    }
+                } while (adminMenuChoice != 7);
             }
             else {
                 cout << "\nReturning to main menu...\n" << endl;
