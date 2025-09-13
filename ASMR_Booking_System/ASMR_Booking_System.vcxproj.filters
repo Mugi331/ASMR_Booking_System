@@ -19,15 +19,4 @@
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
-  <ItemGroup>
-    <Text Include="..\..\..\..\OneDrive\Desktop\Documents\C++ Assignment\experts.txt">
-      <Filter>Source Files</Filter>
-    </Text>
-    <Text Include="..\..\..\..\OneDrive\Desktop\Documents\C++ Assignment\bookings.txt">
-      <Filter>Source Files</Filter>
-    </Text>
-    <Text Include="..\..\..\..\OneDrive\Desktop\Documents\C++ Assignment\customers.txt">
-      <Filter>Source Files</Filter>
-    </Text>
-  </ItemGroup>
 </Project>

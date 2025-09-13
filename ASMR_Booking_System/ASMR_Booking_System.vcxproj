@@ -125,11 +125,6 @@
   <ItemGroup>
     <ClCompile Include="ASMR_Booking_System.cpp" />
   </ItemGroup>
-  <ItemGroup>
-    <Text Include="..\..\..\..\OneDrive\Desktop\Documents\C++ Assignment\bookings.txt" />
-    <Text Include="..\..\..\..\OneDrive\Desktop\Documents\C++ Assignment\customers.txt" />
-    <Text Include="..\..\..\..\OneDrive\Desktop\Documents\C++ Assignment\experts.txt" />
-  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
