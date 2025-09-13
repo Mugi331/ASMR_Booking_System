@@ -2411,7 +2411,6 @@ int main() {
                 case 3:
                     loadBooking(bookings, bkCount, experts, expertN);
                     viewEarningsBonus(cfg, idx, bookings, bkCount, services, svcN, experts);
-                    cin.get();
                     pauseForMenu();
                     break;
                 case 4: {
@@ -2438,7 +2437,6 @@ int main() {
                         cout << displayResult;
                         delete[] sortedBookings;
                     }
-                    cin.get();
                     pauseForMenu();
                     break;
                 }
@@ -2567,9 +2565,10 @@ int main() {
                         break;
                     }
                     case 5: {
-                        int id;
+                        string idStr;
                         cout << "Enter Expert ID (0: June, 1: Bryan, 2: Amy): ";
-                        getline(cin, id);
+                        getline(cin, idStr);
+                        int id = stoi(idStr);
                         cout << "Expert Bonus: RM" << fixed << setprecision(2) << adminViewExpertBonus(bookings, bkCount, experts, expertN, id) << "\n";
                         pauseForMenu();
                         break;
