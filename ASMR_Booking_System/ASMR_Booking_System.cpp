@@ -2304,15 +2304,59 @@ int main() {
                 do {
                     adminMenuChoice = adminMenu(); // show menu, get input
                     switch (adminMenuChoice) {
+                        // Replace this block in your adminMenu() switch-case for case 1:
                     case 1: {
                         goToPage();
                         cout << u8"╔═══════════════════════════════════════════════════╗\n";
                         cout << u8"║          View Individual Expert Schedule          ║\n";
                         cout << u8"╚═══════════════════════════════════════════════════╝\n";
 
-                        int expID = getValidNumericInput("\nEnter Expert ID (0: June, 1: Bryan, 2: Amy): ", 0, expertN - 1);
+                        // 1. Prompt for expert name search
+                        string search;
+                        cout << "Enter expert name (or part of name) to search: ";
+                        clearInputBuffer();
+                        getline(cin, search);
 
-                       // adminViewExpertSchedule(cfg, expID, experts, expertN, services, svcN, bookings, bkCount);
+                        // Convert search string to lowercase manually
+                        string searchLower = search;
+                        for (size_t i = 0; i < searchLower.length(); ++i) {
+                            searchLower[i] = tolower(searchLower[i]);
+                        }
+
+                        // 2. Find all matching experts (case-insensitive)
+                        int matches[NUM_EXPERTS];
+                        int matchCount = 0;
+                        for (int i = 0; i < expertN; ++i) {
+                            string expertNameLower = experts[i].name;
+                            for (size_t j = 0; j < expertNameLower.length(); ++j) {
+                                expertNameLower[j] = tolower(expertNameLower[j]);
+                            }
+                            if (expertNameLower.find(searchLower) != string::npos) {
+                                matches[matchCount++] = i;
+                            }
+                        }
+
+                        if (matchCount == 0) {
+                            cout << "No experts found matching \"" << search << "\".\n";
+                            pauseForMenu();
+                            break;
+                        }
+
+                        // 3. Display matches
+                        cout << "\nMatching experts:\n";
+                        for (int i = 0; i < matchCount; ++i) {
+                            cout << i + 1 << ". " << experts[matches[i]].name << " (ID: " << matches[i] << ")\n";
+                        }
+
+                        // 4. Prompt user to select one
+                        int choice = getValidNumericInput("Select expert by number (0 to go back): ", 0, matchCount);
+                        if (choice == 0) {
+                            break; // Exit to previous menu
+                        }
+                        int expID = matches[choice - 1];
+
+                        // 5. Proceed as before
+                        adminViewExpertSchedule(cfg, expID, experts, expertN, services, svcN, bookings, bkCount);
                         pauseForMenu();
                         break;
                     }
