@@ -274,7 +274,6 @@ char getYesNoInput(const string& prompt) {
         }
 
         cout << "Invalid input! Please enter only Y or N.\n";
-        clearInputBuffer();
     }
     return choice;
 }
@@ -1217,7 +1216,6 @@ bool bookAppointment(const string& customer, const string serviceNames[], const 
         else if (payMethod == 2) {
             string bankName, accountNo;
             cout << "\nEnter Bank Name: ";
-            clearInputBuffer();
             getline(cin, bankName);
 
             while (true) {
@@ -1783,7 +1781,6 @@ bool adminLogin() {
         cout << u8"╔═════════════════════════════════════════════╗\n";
         cout << u8"║                  Admin Login                ║\n";
         cout << u8"╚═════════════════════════════════════════════╝";
-        clearInputBuffer();
         do {
             cout << "\nUsername: ";
             getline(cin, aUsername);
@@ -2442,7 +2439,7 @@ int main() {
                 }
                 case 5:
                     cout << "Goodbye!\n";
-                    cin.get();
+                    
                     pauseForMenu();
                     break;
                 }
@@ -2466,7 +2463,6 @@ int main() {
                         // 1. Prompt for expert name search
                         string search;
                         cout << "Enter expert name (or part of name) to search: ";
-                        clearInputBuffer();
                         getline(cin, search);
 
                         // Convert search string to lowercase manually
@@ -2533,7 +2529,7 @@ int main() {
                     }
                     case 3:
                         viewCustomerList(bookings, bkCount, experts, expertN, services, svcN);
-                        cin.get();
+                        
                         pauseForMenu();
                         break;
                     case 4: {
@@ -2576,7 +2572,6 @@ int main() {
                     case 6:
                         cout << "\n=== Monthly Summary Report ===\n";
                         cout << "Total Sales: RM" << fixed << setprecision(2) << adminMonthlySummary(bookings, bkCount) << "\n";
-						cin.get();
                         pauseForMenu();
                         break;
                     case 7: {
