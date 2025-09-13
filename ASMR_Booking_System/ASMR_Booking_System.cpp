@@ -1797,9 +1797,9 @@ bool adminLogin() {
         cout << u8"╔═════════════════════════════════════════════╗\n";
         cout << u8"║                  Admin Login                ║\n";
         cout << u8"╚═════════════════════════════════════════════╝";
+        clearInputBuffer();
         do {
             cout << "\nUsername: ";
-            clearInputBuffer();
             getline(cin, aUsername);
             if (!isAlphaNumeric(aUsername)) {
                 cout << "Invalid username! Only letters and numbers allowed.\n";
@@ -1807,8 +1807,7 @@ bool adminLogin() {
         } while (!isAlphaNumeric(aUsername));
 
         cout << "Password: ";
-        cin >> aPass;
-        cin.get();
+		cin >> aPass;
 
         if (aUsername == "admin123" && aPass == "abc123") {
             cout << "\nLogin successful. Welcome back, " << aUsername << " !\n";
