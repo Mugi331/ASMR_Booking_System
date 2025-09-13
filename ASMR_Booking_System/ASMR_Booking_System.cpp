@@ -1294,13 +1294,15 @@ bool bookAppointment(const string& customer, const string serviceNames[], const 
     double serviceCharge = basePrice * 0.16;
     double totalPrice = basePrice + serviceCharge;
     cout << fixed << setprecision(2);
-    cout << "\n==== Payment Summary ====\n";
-    cout << u8"┌──────────────────────────────┐\n";
-    cout << u8"║   Payment Summary║\n";
-    cout << u8"╚════════════════════════════════════════  ════╝\n";
-    cout << left << setw(20) << "Service/Package:" << "RM " << right << setw(8) << basePrice << "\n";
-    cout << left << setw(20) << "16% Service Charge:" << "RM " << right << setw(8) << serviceCharge << "\n";
-    cout << left << setw(20) << "Total to pay:" << "RM " << right << setw(8) << totalPrice << "\n";
+    cout << "\n";
+    cout << u8"┌─────────────────────────────────────┐\n";
+    cout << u8"│           Payment Summary           │\n";
+    cout << u8"├─────────────────────┬───────────────┤\n";
+    cout << u8"│" << left << setw(20) << " Service / Package" << u8" │ " << "RM " << basePrice << right << setw(9) << u8"│\n";
+    cout << u8"│" << left << setw(20) << " 16 % Service Charge" << u8" │ " << "RM " << serviceCharge << right << setw(10) << u8"│\n";
+	cout << u8"├─────────────────────┼───────────────┤\n";
+    cout << u8"│" <<left << setw(20) << " Total Pay" << u8" │ " << "RM " << right << setw(5) << totalPrice << right << setw(9) << u8"│\n";
+    cout << u8"└─────────────────────┴───────────────┘\n";
 
     int payMethod;
     bool paymentSuccess = false;
