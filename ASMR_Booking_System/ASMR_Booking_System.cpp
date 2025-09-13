@@ -485,7 +485,7 @@ void clearInputBuffer() {
     cin.ignore(5000, '\n');
 }
 
-// ===== EXPERT SCHEDULING FUNCTIONS ===== //
+// ===== Experrt Scheduling Functions ===== //
 int getExpertsForService(const string& service, const string& date, Expert experts[], int expertN, Service services[], int svcN, int availableExperts[], int maxExperts) {
     int count = 0;
 
@@ -536,7 +536,7 @@ void goToPage() {
 
 void pauseForMenu() {
     cout << "\nPress ENTER to return ...";
-    string dummy;
+	string dummy;
     getline(cin, dummy);
 }
 
@@ -720,6 +720,7 @@ int loadExperts(Expert experts[], int& expertCount) {
 // =================================================================================================
 int customerMenu() {
     goToPage();
+	cout << "\n";
     cout << u8"╔════════════════════════════════════════╗\n";
     cout << u8"║              Customer Menu             ║\n";
     cout << u8"╠════════════════════════════════════════╣\n";
@@ -868,7 +869,7 @@ int viewServicesAndExperts(const string serviceNames[], const string packageName
 
 	cout << "\n";   
     cout << u8"╔═══════════════════════════════════════════════════════╗\n";
-    cout << u8"║" <<setw(35) << right << "AVAILABLE SERVICES" << setw(24) << right << u8"║\n";
+    cout << u8"║" <<setw(35) << right << "Available Services" << setw(24) << right << u8"║\n";
     cout << u8"╚═══════════════════════════════════════════════════════╝\n";
 
     cout << left << setw(30) << "Service" << setw(12) << "1 Hour" << setw(12) << "2 Hours" << endl;
@@ -902,7 +903,7 @@ int viewServicesAndExperts(const string serviceNames[], const string packageName
 
 	cout << "\n";
     cout << u8"╔══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╗\n";
-    cout << u8"║" << setw(55) << right << "OUR EXPERTS" << right << setw(67) << u8"║\n";
+    cout << u8"║" << setw(55) << right << "Our Experts" << right << setw(67) << u8"║\n";
     cout << u8"╚══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╝\n";
 
     cout << left << setw(10) << "Name" << setw(35) << "Specialist" << setw(25) << "Availability" << "Services" << endl;
@@ -1315,23 +1316,28 @@ bool bookAppointment(const string& customer, const string serviceNames[], const 
 }
 
 int viewMyBookings(Booking bookings[], int bkCount, const string& customer) {
-    cout << "\n=== My Bookings ===\n";
+    goToPage();
+    cout << "\n";
+    cout << u8"╔═══════════════════════════╗\n";
+    cout << u8"║       My Booking(s)       ║\n";
+    cout << u8"╠═══════════════════════════╣";
 
     if (bkCount <= 0) {
-        cout << "No bookings found.\n";
+        cout << "No booking found.\n";
         return 0;
     }
 
     bool found = false;
     for (int i = 0; i < bkCount; i++) {
         if (bookings[i].customer == customer) {
-            cout << "Booking #" << bookings[i].bookingId << ":\n"
-                << "Service: " << bookings[i].serviceName << "\n"
-                << "Expert: " << bookings[i].expertName << "\n"
-                << "Date: " << bookings[i].date << "\n"
-                << "Time: " << fixed << setprecision(2) << bookings[i].startTime << "\n"
-                << "Price: RM" << bookings[i].price << "\n"
-                << "----------------------------\n";
+            cout << left << setw(12) << u8"║ Booking #" << bookings[i].bookingId << ":" << right << setw(16) << u8"║\n"
+                 << left << setw(12) << u8"║ Service" << ": " << bookings[i].serviceName << right << setw(16) << u8"║\n"
+                 << left << setw(12) << u8"║ Expert" << ": " << bookings[i].expertName << right << setw(16) << u8"║\n"
+                 << left << setw(12) << u8"║ Date" << ": " << bookings[i].date << right << setw(16) << u8"║\n"
+                 << left << setw(12) << u8"║ Time" << ": " << fixed << setprecision(2) << bookings[i].startTime << right << setw(16) << u8"║\n"
+                 << left << setw(12) << u8"║ Price" << ": RM" << bookings[i].price << right << setw(16) << u8"║\n"
+                 << u8"╚═══════════════════════════╝\n";
+
             found = true;
         }
     }
