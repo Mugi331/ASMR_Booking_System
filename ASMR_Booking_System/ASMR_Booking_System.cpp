@@ -1298,10 +1298,10 @@ bool bookAppointment(const string& customer, const string serviceNames[], const 
     cout << u8"┌─────────────────────────────────────┐\n";
     cout << u8"│           Payment Summary           │\n";
     cout << u8"├─────────────────────┬───────────────┤\n";
-    cout << u8"│" << left << setw(20) << " Service / Package" << u8" │ " << "RM " << basePrice << right << setw(9) << u8"│\n";
-    cout << u8"│" << left << setw(20) << " 16 % Service Charge" << u8" │ " << "RM " << serviceCharge << right << setw(10) << u8"│\n";
+    cout << u8"│" << left << setw(20) << " Service / Package" << u8" │ " << left << setw(3) << "RM " << basePrice << right << setw(9) << u8"│\n";
+    cout << u8"│" << left << setw(20) << " 16 % Service Charge" << u8" │ " << left << setw(4) << "RM " << serviceCharge << right << setw(9) << u8"│\n";
 	cout << u8"├─────────────────────┼───────────────┤\n";
-    cout << u8"│" <<left << setw(20) << " Total Pay" << u8" │ " << "RM " << right << setw(5) << totalPrice << right << setw(9) << u8"│\n";
+    cout << u8"│" <<left << setw(20) << " Total Pay" << u8" │ " << left << setw(3) << "RM " << totalPrice << right << setw(9) << u8"│\n";
     cout << u8"└─────────────────────┴───────────────┘\n";
 
     int payMethod;
@@ -2361,7 +2361,7 @@ int main() {
                         break;
                     case 7:
                         cout << "\nLogging out admin system..." << endl;
-                        pauseForMenu();
+                        this_thread::sleep_for(chrono::seconds(1)); // Pause for 2 seconds before returning to main menu
                         break;
                     }
                 } while (adminMenuChoice != 7);
@@ -2374,7 +2374,8 @@ int main() {
         }
 
         case 4: {
-            cout << "\nThanks for using our system! Exiting ...\n";
+            cout << "\nThanks for using our system! Exiting ...\n" << endl;
+            this_thread::sleep_for(chrono::seconds(1)); // Pause for 2 seconds before returning to main menu
             break;
         }
         }
