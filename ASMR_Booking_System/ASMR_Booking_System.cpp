@@ -3,7 +3,6 @@
 #include <string>
 #include <fstream>
 #include <sstream>
-#include <limits>
 #include <ctime>
 #include <cctype>
 #include <cstdlib> 
@@ -12,9 +11,6 @@
 #include <chrono>
 #include <thread>
 #include <windows.h> //used for logo diplay in ASCII code
-#ifdef max
-#undef max
-#endif
 
 using namespace std;
 
@@ -106,6 +102,7 @@ bool doesExpertSpecializeIn(int expertId, const string& service, const string& d
 int getExpertsForService(const string& service, const string& date, Expert experts[], int expertN, Service services[], int svcN, int availableExperts[], int maxExperts);
 
 string getString(const string& prompt, bool allowEmpty);
+bool adminSalesReport(const Booking bookings[], int bkCount, const Expert experts[], int expertN, const string& weekStart, const string& weekEnd);
 
 void saveCustomers(const string usernames[], const string passwords[], int userCount);
 int loadCustomer(string usernames[], string passwords[], int& userCount);
@@ -537,8 +534,8 @@ void goToPage() {
 
 void pauseForMenu() {
     cout << "\nPress ENTER to return ...";
-    cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-    cin.get();
+    string dummy;
+    getline(cin, dummy);
 }
 
 // =================== File Handling ===================
@@ -1816,6 +1813,7 @@ bool adminLogin() {
             }
         }
     }
+	return false; // Fallback return, should not reach here
 }
 
 int adminMenu() {
@@ -1829,28 +1827,14 @@ int adminMenu() {
     cout << u8"║ 4. Generate Sales Report               ║\n";
     cout << u8"║ 5. View Expert Bonus Entitlement       ║\n";
     cout << u8"║ 6. Monthly Summary Report              ║\n";
-    cout << u8"║ 7. Logout                              ║\n";
+    cout << u8"║ 7. Sales Report                        ║\n";
+    cout << u8"║ 8. Logout                              ║\n";
     cout << u8"╚════════════════════════════════════════╝\n";
 
-    return getValidNumericInput("\nSelect: ", 1, 7);
+    return getValidNumericInput("\nSelect: ", 1, 8);
     pauseForMenu();
 }
 
-// 1. View Individual Expert Schedule
-int adminViewExpertSchedule(const Config& cfg, int expertId, Expert experts[], int expertN, Service services[], int svcN, Booking bookings[], int bkCount) {
-    string date = getValidDateInput(); // Use your input validation for date
-    if (!isDecember(date)) {
-        cout << "Invalid date! Only December is allowed.\n";
-        return 0;
-    }
-    if (!isDecemberWeekday2025(date)) {
-        cout << "Sorry, only weekdays in December 2025 are allowed.\n";
-        return 0;
-    }
-    loadBooking(bookings, bkCount, experts, expertN); // Ensure bookings are up to date
-    viewIndividualSchedule(cfg, expertId, experts, expertN, services, svcN, bookings, bkCount, date);
-    return 1;
-}
 // Overload for viewIndividualSchedule to match the call in adminViewOverallSchedule
 void viewIndividualScheduleApp(const Config& cfg, Booking bookings[], int bkCount, const Expert& expert, const string& weekStartDate) {
     int occLen = cfg.closeHour - cfg.openHour;
@@ -1946,6 +1930,22 @@ int searchExpert(Expert experts[], int expertN) {
 
     int choice = getValidNumericInput("Select expert: ", 1, matchCount);
     return experts[matches[choice - 1]].id;
+}
+
+// 1. View Individual Expert Schedule
+int adminViewExpertSchedule(const Config& cfg, int expertId, Expert experts[], int expertN, Service services[], int svcN, Booking bookings[], int bkCount) {
+    string date = getValidDateInput(); // Use your input validation for date
+    if (!isDecember(date)) {
+        cout << "Invalid date! Only December is allowed.\n";
+        return 0;
+    }
+    if (!isDecemberWeekday2025(date)) {
+        cout << "Sorry, only weekdays in December 2025 are allowed.\n";
+        return 0;
+    }
+    loadBooking(bookings, bkCount, experts, expertN); // Ensure bookings are up to date
+    viewIndividualSchedule(cfg, expertId, experts, expertN, services, svcN, bookings, bkCount, date);
+    return 1;
 }
 
 // 2. View Overall Schedule
@@ -2099,6 +2099,92 @@ double adminViewExpertBonus(Booking bookings[], int bkCount, Expert experts[], i
 // 6. Monthly Summary Report
 double adminMonthlySummary(Booking bookings[], int bkCount) {
     return adminGenerateSalesReport(bookings, bkCount);
+}
+
+//7. Sales Report (Weekly) - Detailed
+bool adminSalesReport(const Booking bookings[], int bkCount, const Expert experts[], int expertN, const string& weekStart, const string& weekEnd) {
+    if (bkCount == 0) {
+        cout << "\nNo bookings found for the selected week.\n";
+        return false;
+    }
+
+    // Prepare totals
+    double consultation[NUM_EXPERTS] = { 0 };
+    double treatment[NUM_EXPERTS] = { 0 };
+    double packageAmt[NUM_EXPERTS] = { 0 };
+    double subtotal[NUM_EXPERTS] = { 0 };
+
+    double totalConsult = 0, totalTreat = 0, totalPack = 0, totalAll = 0;
+
+    // Helper: check if date in week range
+    auto inRange = [](const string& date, const string& start, const string& end) {
+        return date >= start && date <= end;
+        };
+
+    for (int i = 0; i < bkCount; ++i) {
+        const Booking& b = bookings[i];
+        int expertIdx = -1;
+        for (int e = 0; e < expertN; ++e)
+            if (experts[e].id == b.expertId) { expertIdx = e; break; }
+        if (expertIdx == -1) continue;
+        if (!inRange(b.date, weekStart, weekEnd)) continue;
+
+        bool isPack = false;
+        for (int pid = 103; pid <= 104; ++pid)
+            if (b.serviceId == pid) isPack = true;
+        if (isPack) {
+            packageAmt[expertIdx] += b.price;
+            subtotal[expertIdx] += b.price;
+            totalPack += b.price;
+            totalAll += b.price;
+        }
+        else if (b.hasConsultation) {
+            // Consultation always RM50, rest is treatment
+            consultation[expertIdx] += 50.0;
+            double treat = b.price - 50.0;
+            if (treat < 0) treat = 0;
+            treatment[expertIdx] += treat;
+            subtotal[expertIdx] += b.price;
+            totalConsult += 50.0;
+            totalTreat += treat;
+            totalAll += b.price;
+        }
+        else {
+            treatment[expertIdx] += b.price;
+            subtotal[expertIdx] += b.price;
+            totalTreat += b.price;
+            totalAll += b.price;
+        }
+    }
+
+    // Print table
+    cout << "\n";
+    cout << u8"╔════════════════════════════════════════════════════════════════════════════════════╗\n";
+    cout << u8"║                          Sales Report (" << weekStart << u8" → " << weekEnd << ")";
+    int pad = 41 - (int)weekStart.length() - (int)weekEnd.length();
+    for (int i = 1; i < pad; ++i) cout << " ";
+    cout << u8"║\n";
+    cout << u8"╚════════════════════════════════════════════════════════════════════════════════════╝\n\n";
+
+    cout << u8"╔════════════════════════════════════════════════════════════════════════════════════╗\n";
+    cout << u8"║ Expert         │ Consultation (RM) │ Treatment (RM) │ Package (RM) │ Subtotal (RM) ║\n";
+    cout << u8"╟────────────────┼───────────────────┼────────────────┼──────────────┼───────────────╢\n";
+    for (int e = 0; e < expertN; ++e) {
+        cout << u8"║ " << left << setw(15) << experts[e].name
+            << u8"│ " << right << setw(17) << (int)consultation[e]
+            << u8" │ " << right << setw(14) << (int)treatment[e]
+            << u8" │ " << right << setw(12) << (int)packageAmt[e]
+            << u8" │ " << right << setw(13) << (int)subtotal[e]
+            << u8" ║\n";
+    }
+    cout << u8"╟────────────────┼───────────────────┼────────────────┼──────────────┼───────────────╢\n";
+    cout << u8"║ TOTAL          │ " << right << setw(17) << (int)totalConsult
+        << u8" │ " << right << setw(14) << (int)totalTreat
+        << u8" │ " << right << setw(12) << (int)totalPack
+        << u8" │ " << right << setw(13) << (int)totalAll
+        << u8" ║\n";
+    cout << u8"╚════════════════════════════════════════════════════════════════════════════════════╝\n";
+    return true;
 }
 
 // =================================================================================================
@@ -2438,12 +2524,41 @@ int main() {
                         cout << "Total Sales: RM" << fixed << setprecision(2) << adminMonthlySummary(bookings, bkCount) << "\n";
                         pauseForMenu();
                         break;
-                    case 7:
-                        cout << "\nLogging out admin system..." << endl;
-                        this_thread::sleep_for(chrono::seconds(1)); // Pause for 2 seconds before returning to main menu
+                    case 7: {
+                        string weekDate;
+                        while (true) {
+                            cout << "Enter any December 2025 date (YYYY-MM-DD) for the week to view: ";
+                            cin >> weekDate;
+                            // Check for empty input
+                            if (weekDate.empty()) {
+                                cout << "Date cannot be empty!\n";
+                                continue;
+                            }
+                            // Validate format and range
+                            if (isValidDate(weekDate) && isDecember(weekDate)) {
+                                int y, m, d;
+                                if (parseDate(weekDate, y, m, d) && y == 2025 && m == 12 && d >= 1 && d <= 31) {
+                                    break;
+                                }
+                            }
+                            cout << "Invalid date! Please enter a date in the format 2025-12-DD.\n";
+                        }
+                        string monday = mondayOfWeek(weekDate);
+                        string friday = addDays(monday, 4);
+                        bool ok = adminSalesReport(bookings, bkCount, experts, expertN, monday, friday);
+                        if (!ok) {
+                            cout << "Failed to display sales report for the selected week.\n";
+                        }
+                        cin.get();
+                        pauseForMenu();
                         break;
                     }
-                } while (adminMenuChoice != 7);
+                    case 8:
+                        cout << "\nLogging out admin system..." << endl;
+                        this_thread::sleep_for(chrono::seconds(1));
+                        break;
+                    }
+                } while (adminMenuChoice != 8);
             }
             else {
                 cout << "\nReturning to main menu...\n" << endl;
