@@ -1,4 +1,4 @@
-﻿#include <iostream>
+﻿#include <iostream> 
 #include <iomanip>
 #include <string>
 #include <fstream>
@@ -24,7 +24,7 @@ const int NUM_EXPERTS = 3;
 const int BK_CAP = 500;
 const int WEEKS_IN_DECEMBER = 4;
 const int DAYS_PER_WEEK = 5; // Monday to Friday
-
+const int DAYS_PER_MONTH = 31;
 
 // ================= Data Structures =================
 struct Expert {
@@ -75,17 +75,39 @@ struct Config {
     int closeHour;
 };
 
+struct expertBonus {
+    double treatHrs;
+    double consultHrs;
+    double totalHrs;
+    double serviceRM;
+    double rate;
+    double bonusRM;
+};
+
+struct SalaryInfo {
+    double serviceRM;    // total sales value
+    double commission;   // 30% of sales
+    double bonus;        // bonus from calculateBonus
+    double totalPay;     // commission + bonus
+};
+
+struct profitInfo {
+    double consultRM;
+    double treatRM;
+    double packageRM;
+    double totalRM;
+};
+
 // ================== Function Prototypes ==================
 string to_string_with_precision(double value, int precision);
 bool isValidTimeFormat(double time);
 bool isValidDate(const string& date);
-bool isNumeric(const string& s);
 bool isAlphaNumeric(const string& s);
 double getValidTimeInput(const string& prompt, int openHour, int closeHour);
 bool isDecember(const string& date);
 bool isWeekend(const string& date);
 string getValidDateInput();
-int getValidNumericInput(const string& prompt, int minVal, int maxVal);
+int getValidNumericInput(const string& prompt, int minVal, int maxVal, bool allowExit = false);
 char getYesNoInput(const string& prompt);
 int toInt(const string& s, int start, int len);
 int parseDate(const string& date, int& y, int& m, int& d);
@@ -100,10 +122,8 @@ bool isPackage(const string& serviceName);
 string getMainComponent(const string& packageName);
 bool doesExpertSpecializeIn(int expertId, const string& service, const string& date);
 int getExpertsForService(const string& service, const string& date, Expert experts[], int expertN, Service services[], int svcN, int availableExperts[], int maxExperts);
-
-string getString(const string& prompt, bool allowEmpty);
-bool adminSalesReport(const Booking bookings[], int bkCount, const Expert experts[], int expertN, const string& weekStart, const string& weekEnd);
-
+string formatDay(int day);
+void showCalendar();
 void saveCustomers(const string usernames[], const string passwords[], int userCount);
 int loadCustomer(string usernames[], string passwords[], int& userCount);
 void saveBooking(const Booking bookings[], int bkCount);
@@ -142,15 +162,20 @@ int expertMenu();
 Booking* bubbleSortBookingsByDate(Booking bookings[], int count, Service services[], int svcN);
 string getSortedBookingsByDateDisplay(Booking bookings[], int count, Service services[], int svcN);
 
-
 bool adminLogin();
 int adminMenu();
-
 void viewCustomerList(Booking bookings[], int bkCount, Expert experts[], int expertN, Service services[], int svcN);
+void adminViewIndividualSchedule(const Config& cfg, Booking bookings[], int bkCount, const Expert& expert, const string& weekStartDate);
+bool isWithinWeek(const string& date, const string& weekStartDate);
+int adminViewOverallSchedule(const Config& cfg, Booking bookings[], int bkCount, Expert experts[], int expertN, const string& weekStartDate);
 int adminViewExpertSchedule(const Config& cfg, int expertId, Expert experts[], int expertN, Service services[], int svcN, Booking bookings[], int bkCount);
-double adminGenerateSalesReport(Booking bookings[], int bkCount);
-double adminViewExpertBonus(Booking bookings[], int bkCount, Expert experts[], int expertN, int expertId);
-double adminMonthlySummary(Booking bookings[], int bkCount);
+string getString(const string& prompt, bool allowEmpty);
+bool adminSalesReport(const Booking bookings[], int bkCount, const Expert experts[], int expertN, const string& weekStart, const string& weekEnd);
+int adminViewExpertBonus(const Config& cfg, Booking bookings[], int bkCount, Expert experts[], int expertN);
+expertBonus calculateBonus(const Config& cfg, int expertId, Booking bookings[], int bkCount);
+int viewProfitAndExpertMonthlySalary(const Config& cfg, Booking bookings[], int bkCount, Expert experts[], int expertN, const std::string& ym);
+profitInfo calcPerMthProfit(Booking bookings[], int bkCount, int year, int month);
+SalaryInfo calculateSalary(const Config& cfg, int expertId, Booking bookings[], int bkCount);
 
 void clearInputBuffer();
 void displayLogo();
@@ -173,7 +198,6 @@ bool isNumeric(const std::string& str) {
     return true;
 }
 
-
 string getString(const string& prompt, bool allowEmpty) {
     string value;
     bool valid = false;
@@ -195,43 +219,6 @@ string getString(const string& prompt, bool allowEmpty) {
     return value;
 }
 
-int promptNumericInput(const string& prompt) {
-    string input;
-    while (true) {
-        cout << prompt;
-        getline(cin, input);
-        if (!isNumeric(input)) {
-            cout << "Invalid input! Please enter a numeric value.\n";
-            continue;
-        }
-        return stoi(input);
-    }
-}
-
-// - Checks if a string contains only alphabetic characters
-bool isAlphabet(const std::string& str) {
-    if (str.empty()) 
-        return false;
-    for (char c : str) {
-        if (!isalpha(c)) 
-            return false;
-    }
-    return true;
-}
-
-string promptAlphabetInput(const string& prompt) {
-    string input;
-    while (true) {
-        cout << prompt;
-        getline(cin, input);
-        if (!isAlphabet(input)) {
-            cout << "Invalid input! Must be alphabet.\n";
-            continue;
-        }
-        return input;
-    }
-}
-
 bool isAlphaNumeric(const string& str) {
     for (char c : str) {
         if (!isalnum(c)) return false;
@@ -239,12 +226,18 @@ bool isAlphaNumeric(const string& str) {
     return true;
 }
 
-int getValidNumericInput(const string& prompt, int minVal, int maxVal) {
+int getValidNumericInput(const string& prompt, int minVal, int maxVal, bool allowExit) {
     int choice;
+
     while (true) {
         cout << prompt;
         string input;
         getline(cin, input);
+
+        if (allowExit && input == "-1") {
+            return -1; // special "back" signal
+        }
+
         if (!isNumeric(input)) {
             cout << "Invalid input! Please enter a numeric value between " << minVal << " and " << maxVal << ".\n";
             continue;
@@ -258,6 +251,7 @@ int getValidNumericInput(const string& prompt, int minVal, int maxVal) {
     }
     return choice;
 }
+
 
 char getYesNoInput(const string& prompt) {
     string input;
@@ -359,15 +353,6 @@ string getValidDateInput() {
         break;
     }
     return date;
-}
-
-// Helper to check if a date is within the week starting from weekStartDate (Monday)
-bool isWithinWeek(const string& date, const string& weekStartDate) {
-    int y1, m1, d1, y2, m2, d2;
-    if (!parseDate(date, y1, m1, d1) || !parseDate(weekStartDate, y2, m2, d2))
-        return false;
-    string monday = mondayOfWeek(date);
-    return monday == weekStartDate;
 }
 
 // ================ Helper Functions =================
@@ -510,6 +495,48 @@ int getExpertsForService(const string& service, const string& date, Expert exper
 }
 
 // ================== Display Functions ==================
+string formatDay(int day) {
+    if (day == 0) return "   ";
+    if (day < 10) return " " + to_string(day) + " ";
+    return " " + to_string(day);
+}
+
+void showCalendar() {
+    int startDay = 1;
+
+    cout << "\n" << right << setw(20) << "December 2025" << "\n";
+
+    cout << u8"┌───┬───┬───┬───┬───┬───┬───┐\n";
+    cout << u8"│MON│TUE│WED│THU│FRI│SAT│SUN│\n";
+    cout << u8"├───┼───┼───┼───┼───┼───┼───┤\n";
+
+    int day = 1;
+
+    cout << u8"│";
+    for (int i = 1; i < startDay; i++) cout << u8"   │";
+    for (int i = startDay; i <= 7; i++) cout << formatDay(day++) << u8"│";
+    cout << "\n";
+
+    cout << u8"├───┼───┼───┼───┼───┼───┼───┤\n";
+
+    while (day <= DAYS_PER_MONTH) {
+        cout << u8"│";
+        for (int i = 1; i <= 7; i++) {
+            if (day <= DAYS_PER_MONTH)
+                cout << formatDay(day++) << u8"│";
+            else
+                cout << u8"   │";
+        }
+        cout << "\n";
+
+        if (day <= DAYS_PER_MONTH)
+            cout << u8"├───┼───┼───┼───┼───┼───┼───┤\n";
+    }
+
+
+    cout << u8"└───┴───┴───┴───┴───┴───┴───┘\n";
+}
+
 void displayLogo() {
     SetConsoleOutputCP(CP_UTF8);
     SetConsoleCP(CP_UTF8);
@@ -534,8 +561,7 @@ void goToPage() {
 
 void pauseForMenu() {
     cout << "\nPress ENTER to return ...";
-	string dummy;
-    getline(cin, dummy);
+    cin.get();
 }
 
 // =================== File Handling ===================
@@ -841,7 +867,8 @@ int loginUser(const string usernames[], const string passwords[], int userCount)
             string filePassword = line.substr(position + 1);
 
             if (fileUsername == username && filePassword == password) {
-                cout << "Login successful. Welcome, " << username << "!" << endl;
+                cout << "\nLogin  successful. Welcome, " << username << "!\n";
+                this_thread::sleep_for(chrono::seconds(1));
                 inFile.close();
                 return index;
             }
@@ -1039,6 +1066,7 @@ bool bookAppointment(const string& customer, const string serviceNames[], const 
     bool consultationAdded = false;
 
     // --- Get valid date ---
+    showCalendar();
     while (true) {
         cout << "\nEnter appointment date (YYYY-MM-DD): ";
         getline(cin, inputDate);
@@ -1076,10 +1104,11 @@ bool bookAppointment(const string& customer, const string serviceNames[], const 
 
     // Get service choice
     int choice = getValidNumericInput("\nEnter the service you want (1-" + to_string(NUM_SERVICES + NUM_PACKAGES) + "): ", 1, TOTAL_OPTIONS);
-
+ 
     if (choice >= 1 && choice <= NUM_SERVICES) {
         bookingService = serviceNames[choice - 1];
-        durationChoice = getValidNumericInput("\nEnter duration (1 for 1 hour, 2 for 2 hours): ", 1, 2);
+        durationChoice = getValidNumericInput("\nEnter duration (1 for 1 hour | 2 for 2 hours | -1 to go back): ", 1, 2);
+
         basePrice = servicePrices[choice - 1][durationChoice - 1];
         isPackage = false;
         durationMin = durationChoice * 60;
@@ -1303,9 +1332,9 @@ bool bookAppointment(const string& customer, const string serviceNames[], const 
 int viewMyBookings(Booking bookings[], int bkCount, const string& customer) {
     goToPage();
     cout << "\n";
-    cout << u8"╔═══════════════════════════╗\n";
-    cout << u8"║       My Booking(s)       ║\n";
-    cout << u8"╠═══════════════════════════╣";
+    cout << u8"╔═════════════════════════════════════════════╗\n";
+    cout << u8"║                 My Booking(s)               ║\n";
+    cout << u8"╚═════════════════════════════════════════════╝\n";
 
     if (bkCount <= 0) {
         cout << "No booking found.\n";
@@ -1315,13 +1344,13 @@ int viewMyBookings(Booking bookings[], int bkCount, const string& customer) {
     bool found = false;
     for (int i = 0; i < bkCount; i++) {
         if (bookings[i].customer == customer) {
-            cout << left << setw(12) << u8"║ Booking #" << bookings[i].bookingId << ":" << right << setw(16) << u8"║\n"
-                 << left << setw(12) << u8"║ Service" << ": " << bookings[i].serviceName << right << setw(16) << u8"║\n"
-                 << left << setw(12) << u8"║ Expert" << ": " << bookings[i].expertName << right << setw(16) << u8"║\n"
-                 << left << setw(12) << u8"║ Date" << ": " << bookings[i].date << right << setw(16) << u8"║\n"
-                 << left << setw(12) << u8"║ Time" << ": " << fixed << setprecision(2) << bookings[i].startTime << right << setw(16) << u8"║\n"
-                 << left << setw(12) << u8"║ Price" << ": RM" << bookings[i].price << right << setw(16) << u8"║\n"
-                 << u8"╚═══════════════════════════╝\n";
+            cout << left << setw(10) << " Booking #" << bookings[i].bookingId << "\n"
+                 << left << setw(10) << " Service" << ": " << bookings[i].serviceName << "\n"
+                 << left << setw(10) << " Expert" << ": " << bookings[i].expertName << "\n"
+                 << left << setw(10) << " Date" << ": " << bookings[i].date << "\n"
+                 << left << setw(10) << " Time" << ": " << fixed << setprecision(2) << bookings[i].startTime << "\n"
+                 << left << setw(10) << " Price" << ": RM " << bookings[i].price << "\n"
+                 << u8"───────────────────────────────────────────────\n";
 
             found = true;
         }
@@ -1551,7 +1580,7 @@ int viewIndividualSchedule(const Config& cfg, int expertId, Expert experts[], in
 
         cout << left << setw(12) << day;
         for (int i = 0; i < occLen; ++i) {
-            string label = occ[i] ? "Booked" : "Free  ";
+            string label = occ[i] ? "Booked" : "  -  ";
             cout << setw(8) << label;
         }
 
@@ -1638,19 +1667,15 @@ int viewAssignedCustomerList(const Config& cfg, int expertId, Booking bookings[]
 
 }
 
-double viewEarningsBonus(const Config& cfg, int expertId, Booking bookings[], int bkCount,
-    Service services[], int svcN, Expert experts[]) {
-
+// Shared calculation bonus (helper funciton) for both viewEarningsBonus() and adminViewExpertBonus()
+expertBonus calculateBonus(const Config& cfg, int expertId, Booking bookings[], int bkCount) {
     int treatMin = 0;
     int consultMin = 0;
     double totalRM = 0.0;
 
     for (int b = 0; b < bkCount; ++b) {
-        if (bookings[b].expertId != expertId)
-            continue;
-
-        if (!isDecemberWeekday2025(bookings[b].date))
-            continue;
+        if (bookings[b].expertId != expertId) continue;
+        if (!isDecemberWeekday2025(bookings[b].date)) continue;
 
         if (bookings[b].hasConsultation) {
             consultMin += 60;
@@ -1668,32 +1693,46 @@ double viewEarningsBonus(const Config& cfg, int expertId, Booking bookings[], in
 
     double totalH = (treatMin + consultMin) / 60.0;
     double rate = 0.0;
-
-    if (totalH >= 30.0)
-        rate = 0.50;
-    else if (totalH >= 25.0)
-        rate = 0.25;
+    if (totalH >= 30.0) rate = 0.50;
+    else if (totalH >= 25.0) rate = 0.25;
 
     double bonus = totalRM * rate;
 
-    cout << "\nEarnings & Bonus (December 2025)\n";
-    cout << "Total treatment hours    : " << fixed << setprecision(2) << (treatMin / 60.0) << "h\n";
-    cout << "Total consultation hours : " << fixed << setprecision(2) << (consultMin / 60.0) << "h\n";
-    cout << "Total combined hours     : " << fixed << setprecision(2) << totalH << "h\n";
-    cout << "Total service value      : RM" << fixed << setprecision(2) << totalRM << "\n";
-    cout << "Bonus percentage         : " << (rate * 100.0) << "%\n";
-    cout << "Bonus amount earned      : RM" << fixed << setprecision(2) << bonus << "\n";
+    return { treatMin / 60.0, consultMin / 60.0, totalH, totalRM, rate, bonus };
+}
 
-    return bonus;
+double viewEarningsBonus(const Config& cfg, int expertId, Booking bookings[], int bkCount,
+    Service services[], int svcN, Expert experts[]) {
+
+    expertBonus bi = calculateBonus(cfg, expertId, bookings, bkCount);
+
+
+    cout << "\n";
+    cout << u8"╔══════════════════════════════════════════════════╗\n";
+    cout << u8"║         Earnings & Bonus (December 2025)         ║\n";
+    cout << u8"╠══════════════════════════════════════════════════╣\n";
+    cout << fixed << setprecision(2);
+    cout << u8"║ Total treatment hours    : " << right << setw(5) << bi.treatHrs << "h" << right << setw(20) << u8"║\n";
+    cout << u8"║ Total consultation hours : " << right << setw(5) << bi.consultHrs << "h" << right << setw(20) << u8"║\n";
+    cout << u8"║ Total combined hours     : " << right << setw(5) << bi.totalHrs << "h" << right << setw(20) << u8"║\n";
+    cout << u8"║ Total service value      : RM " << right << setw(7) << bi.serviceRM << right << setw(16) << u8"║\n";
+    cout << u8"║ Bonus percentage         : " << noshowpoint << right << setw(2) << (int)(bi.rate * 100) << "%" << right << setw(23) << u8"║\n";
+    cout << u8"║ Bonus amount earned      : RM " << right << setw(7) << bi.bonusRM << right << setw(16) << u8"║\n";
+    cout << u8"╚══════════════════════════════════════════════════╝\n";
+    return bi.bonusRM;
 }
 
 int expertLogin(Expert experts[], int expertN) {
     string u, p;
-    cout << "Expert login\nUsername: ";
+    cout << "\n";
+    cout << u8"╔═════════════════════════════════════════════╗\n";
+    cout << u8"║                Expert Login                 ║\n";
+    cout << u8"╚═════════════════════════════════════════════╝";
+    cout << "\nUsername: ";
     getline(cin, u);
 
     if (!isAlphaNumeric(u)) {
-        cout << "Invalid username format!\n";
+        cout << "\nInvalid username format!\n";
         return -1;
     }
 
@@ -1701,12 +1740,16 @@ int expertLogin(Expert experts[], int expertN) {
     getline(cin, p);
 
     if (!isAlphaNumeric(p)) {
-        cout << "Invalid password format!\n";
+        cout << "\nInvalid password format!\n";
         return -1;
     }
 
     for (int i = 0; i < expertN; ++i) {
-        if (experts[i].username == u && experts[i].password == p) return i;
+        if (experts[i].username == u && experts[i].password == p) {
+            cout << "\nLogin successful. Welcome back, " << u << " !\n";
+            this_thread::sleep_for(chrono::seconds(1));
+            return i;
+        }
     }
     return -1;
 }
@@ -1753,23 +1796,26 @@ string getSortedBookingsByDateDisplay(Booking bookings[], int count, Service ser
         return "No bookings found to sort.\n";
     }
     stringstream ss;
-    ss << "\n=== My Bookings Sorted by Date ===\n";
+    ss << "\n";
+    ss << u8"╔═════════════════════════════════════════════╗\n";
+    ss << u8"║         My Bookings Sorted by Date          ║\n";
+    ss << u8"╚═════════════════════════════════════════════╝\n\n";
     ss << left << setw(12) << "Date" << setw(8) << "Time" << setw(20) << "Customer"
-        << setw(30) << "Service" << setw(10) << "Duration" << "Price" << "\n";
+        << setw(30) << "Service" << setw(12) << "Duration" << setw(10) << "Price" << "\n";
     ss << string(95, '-') << "\n";
 
     for (int i = 0; i < count; i++) {
         string timeStr = to_string(static_cast<int>(bookings[i].startTime)) + ":00";
 
         if (timeStr.length() == 4) timeStr = "0" + timeStr;
-        string priceStr = "RM" + to_string_with_precision(bookings[i].price, 2);
+        string priceStr = to_string_with_precision(bookings[i].price, 2);
 
         ss << left << setw(12) << bookings[i].date
             << setw(8) << timeStr
             << setw(20) << bookings[i].customer.substr(0, 19)
             << setw(30) << bookings[i].serviceName.substr(0, 29)
-            << right << setw(8) << (bookings[i].durationMin / 60)
-            << setw(10) << priceStr << "\n";
+            << right << setw(5) << (bookings[i].durationMin / 60)
+            << right << setw(10) << "RM " << right << setw(6) << priceStr << "\n";
     }
     ss << string(95, '-') << "\n";
     ss << "Total bookings: " << count << "\n";
@@ -1782,11 +1828,11 @@ string getSortedBookingsByDateDisplay(Booking bookings[], int count, Service ser
 
 bool adminLogin() {
     string aUsername, aPass; int attempts = 0;
+    cout << "\n";
+    cout << u8"╔═════════════════════════════════════════════╗\n";
+    cout << u8"║                Admin Login                  ║\n";
+    cout << u8"╚═════════════════════════════════════════════╝";
     while (attempts < 3) {
-        cout << "\n";
-        cout << u8"╔═════════════════════════════════════════════╗\n";
-        cout << u8"║                  Admin Login                ║\n";
-        cout << u8"╚═════════════════════════════════════════════╝";
         do {
             cout << "\nUsername: ";
             getline(cin, aUsername);
@@ -1800,7 +1846,7 @@ bool adminLogin() {
 
         if (aUsername == "admin123" && aPass == "abc123") {
             cout << "\nLogin successful. Welcome back, " << aUsername << " !\n";
-            pauseForMenu();
+            this_thread::sleep_for(chrono::seconds(1));
             return true; // Login successful, exit the loop
         }
         else {
@@ -1829,7 +1875,7 @@ int adminMenu() {
     cout << u8"║ 3. View Customer List                  ║\n";
     cout << u8"║ 4. Generate Sales Report               ║\n";
     cout << u8"║ 5. View Expert Bonus Entitlement       ║\n";
-    cout << u8"║ 6. Monthly Summary Report              ║\n";
+    cout << u8"║ 6. View Profit & Expert Monthly Salary ║\n";
     cout << u8"║ 7. Logout                              ║\n";
     cout << u8"╚════════════════════════════════════════╝\n";
 
@@ -1837,8 +1883,24 @@ int adminMenu() {
     pauseForMenu();
 }
 
-// Overload for viewIndividualSchedule to match the call in adminViewOverallSchedule
-void viewIndividualScheduleApp(const Config& cfg, Booking bookings[], int bkCount, const Expert& expert, const string& weekStartDate) {
+// 1. View Individual Expert Schedule
+int adminViewExpertSchedule(const Config& cfg, int expertId, Expert experts[], int expertN, Service services[], int svcN, Booking bookings[], int bkCount) {
+    string date = getValidDateInput(); // Use your input validation for date
+    if (!isDecember(date)) {
+        cout << "Invalid date! Only December is allowed.\n";
+        return 0;
+    }
+    if (!isDecemberWeekday2025(date)) {
+        cout << "Sorry, only weekdays in December 2025 are allowed.\n";
+        return 0;
+    }
+    loadBooking(bookings, bkCount, experts, expertN); // Ensure bookings are up to date
+    viewIndividualSchedule(cfg, expertId, experts, expertN, services, svcN, bookings, bkCount, date);
+    return 1;
+}
+
+// === Overload for viewIndividualSchedule to match the call in adminViewOverallSchedule ===
+void adminViewIndividualSchedule(const Config& cfg, Booking bookings[], int bkCount, const Expert& expert, const string& weekStartDate) {
     int occLen = cfg.closeHour - cfg.openHour;
     cout << left << setw(12) << "Date";
     for (int h = cfg.openHour; h < cfg.closeHour; ++h) {
@@ -1884,7 +1946,7 @@ void viewIndividualScheduleApp(const Config& cfg, Booking bookings[], int bkCoun
 
         cout << left << setw(12) << day;
         for (int i = 0; i < occLen; ++i) {
-            string label = occ[i] ? "Booked" : "Free  ";
+            string label = occ[i] ? "Booked" : "  -  ";
             cout << setw(8) << label;
         }
         cout << setw(20) << displayName << fixed << setprecision(2)
@@ -1896,64 +1958,17 @@ void viewIndividualScheduleApp(const Config& cfg, Booking bookings[], int bkCoun
     return;
 }
 
-// Help function
-int searchExpert(Expert experts[], int expertN) {
-    std::string query;
-    cout << "Enter expert name (or part of name): ";
-    getline(cin, query);
-
-    // to lowercase
-    auto toLower = [](std::string s) {
-        for (auto& c : s) c = std::tolower(c);
-        return s;
-        };
-    std::string q = toLower(query);
-
-    int matches[50];   // assume max 50 experts
-    int matchCount = 0;
-
-    for (int i = 0; i < expertN; i++) {
-        std::string nameLower = toLower(experts[i].name);
-        if (nameLower.find(q) != std::string::npos) {
-            matches[matchCount++] = i;
-        }
-    }
-
-    if (matchCount == 0) {
-        cout << "No experts found for query: " << query << "\n";
-        return -1;
-    }
-
-    if (matchCount == 1) {
-        return experts[matches[0]].id;
-    }
-
-    cout << "\nMultiple matches found:\n";
-    for (int i = 0; i < matchCount; i++) {
-        cout << i + 1 << ". " << experts[matches[i]].name << " (ID: " << experts[matches[i]].id << ")\n";
-    }
-
-    int choice = getValidNumericInput("Select expert: ", 1, matchCount);
-    return experts[matches[choice - 1]].id;
-}
-
-// 1. View Individual Expert Schedule
-int adminViewExpertSchedule(const Config& cfg, int expertId, Expert experts[], int expertN, Service services[], int svcN, Booking bookings[], int bkCount) {
-    string date = getValidDateInput(); // Use your input validation for date
-    if (!isDecember(date)) {
-        cout << "Invalid date! Only December is allowed.\n";
-        return 0;
-    }
-    if (!isDecemberWeekday2025(date)) {
-        cout << "Sorry, only weekdays in December 2025 are allowed.\n";
-        return 0;
-    }
-    loadBooking(bookings, bkCount, experts, expertN); // Ensure bookings are up to date
-    viewIndividualSchedule(cfg, expertId, experts, expertN, services, svcN, bookings, bkCount, date);
-    return 1;
-}
-
 // 2. View Overall Schedule
+
+// Helper to check if a date is within the week starting from weekStartDate (Monday)
+bool isWithinWeek(const string& date, const string& weekStartDate) {
+    int y1, m1, d1, y2, m2, d2;
+    if (!parseDate(date, y1, m1, d1) || !parseDate(weekStartDate, y2, m2, d2))
+        return false;
+    string monday = mondayOfWeek(date);
+    return monday == weekStartDate;
+}
+
 int adminViewOverallSchedule(const Config& cfg, Booking bookings[], int bkCount, Expert experts[], int expertN, const string& weekStartDate) {
     if (bkCount == 0) {
         cout << "\nNo bookings found.\n";
@@ -1962,33 +1977,30 @@ int adminViewOverallSchedule(const Config& cfg, Booking bookings[], int bkCount,
 
     cout << "\n";
     cout << u8"╔════════════════════════════════════════════════════════════╗\n";
-    cout << u8"║                          Sales Report (" << weekStartDate << u8" → " << weekStartDate << ")";
-    int pad = 41 - (int)weekStartDate.length() - (int)weekStartDate.length();
-    for (int i = 1; i < pad; ++i) cout << " ";
-    cout << u8"║\n";
-    cout << u8"╚════════════════════════════════════════════════════════════╝\n\n";
+    cout << u8"║            Overall Weekly Schedule (" << weekStartDate << ")" << right << setw(16) << u8"║\n";
+    cout << u8"╚════════════════════════════════════════════════════════════╝\n";
 
     // 1. Print each expert's weekly timetable
     for (int e = 0; e < expertN; e++) {
-        cout << "\n====================================================\n";
-        cout << "Expert: " << experts[e].name << "\n";
-        cout << "====================================================\n";
-        viewIndividualScheduleApp(cfg, bookings, bkCount, experts[e], weekStartDate);
+        cout << u8"\n┌────────────────────┐\n";
+        cout << u8"│ Expert: " << left << setw(11) << experts[e].name << u8"│\n";
+        cout << u8"└────────────────────┘\n";
+        adminViewIndividualSchedule(cfg, bookings, bkCount, experts[e], weekStartDate);
     }
 
     // 2. Summary table
     cout << "\n";
-    cout << u8"╔════════════════════════════════════════════════════════════╗\n";
-    cout << u8"║              Weekly Summary of Expert Workload             ║\n";
-    cout << u8"╚════════════════════════════════════════════════════════════╝\n\n";
+    cout << u8"╔════════════════════════════════════════════════════════════════════╗\n";
+    cout << u8"║                 Weekly Summary of Expert Workload                  ║\n";
+    cout << u8"╚════════════════════════════════════════════════════════════════════╝\n\n";
 
     cout << left << setw(15) << "Expert"
-        << setw(10) << "Bookings"
-        << setw(15) << "Service Hrs"
-        << setw(18) << "Consultation Hrs"
-        << setw(15) << "Total Hrs" << "\n";
+                 << setw(10) << "Bookings"
+                 << setw(15) << "Service Hrs"
+                 << setw(18) << "Consultation Hrs"
+                 << setw(15) << "Total Hrs" << "\n";
 
-    cout << string(73, '-') << "\n";
+    cout << string(70, '-') << "\n";
 
     for (int e = 0; e < expertN; ++e) {
         int bookingCount = 0;
@@ -2017,7 +2029,7 @@ int adminViewOverallSchedule(const Config& cfg, Booking bookings[], int bkCount,
             << setw(15) << totalHours << "\n";
     }
 
-    cout << string(73, '=') << "\n";
+    cout << string(70, '=') << "\n";
 
     return 1;
 }
@@ -2081,35 +2093,8 @@ void viewCustomerList(Booking bookings[], int bkCount, Expert experts[], int exp
             cout << u8"╚═════════════════════════════════════════════════════╝\n\n";
     }
 }
-// 4. Generate Sales Report
-double adminGenerateSalesReport(Booking bookings[], int bkCount) {
-    double total = 0;
-    for (int i = 0; i < bkCount; ++i) {
-        total += bookings[i].price;
-    }
-    return total;
-}
 
-// 5. View Expert Bonus
-double adminViewExpertBonus(Booking bookings[], int bkCount, Expert experts[], int expertN, int expertId) {
-    double totalH = 0, totalRM = 0;
-    for (int i = 0; i < bkCount; ++i) {
-        if (bookings[i].expertId == experts[expertId].id) {
-            totalH += bookings[i].durationMin / 60.0;
-            totalRM += bookings[i].price;
-        }
-    }
-    double rate = (totalH >= 30 ? 0.5 : (totalH >= 25 ? 0.25 : 0));
-    double bonus = totalRM * rate;
-    return bonus;
-}
-
-// 6. Monthly Summary Report
-double adminMonthlySummary(Booking bookings[], int bkCount) {
-    return adminGenerateSalesReport(bookings, bkCount);
-}
-
-//7. Sales Report (Weekly) - Detailed
+//4. Gnerate Sales Report (Weekly)
 bool adminSalesReport(const Booking bookings[], int bkCount, const Expert experts[], int expertN, const string& weekStart, const string& weekEnd) {
     if (bkCount == 0) {
         cout << "\nNo bookings found for the selected week.\n";
@@ -2165,7 +2150,7 @@ bool adminSalesReport(const Booking bookings[], int bkCount, const Expert expert
         }
     }
 
-    // Print table
+    // Table Display
     cout << "\n";
     cout << u8"╔════════════════════════════════════════════════════════════════════════════════════╗\n";
     cout << u8"║                          Sales Report (" << weekStart << u8" → " << weekEnd << ")";
@@ -2188,12 +2173,187 @@ bool adminSalesReport(const Booking bookings[], int bkCount, const Expert expert
     }
     cout << u8"╟────────────────┼───────────────────┼────────────────┼──────────────┼───────────────╢\n";
     cout << u8"║ TOTAL          │ " << right << setw(17) << totalConsult
-        << u8" │ " << right << setw(14) << totalTreat
-        << u8" │ " << right << setw(12) << totalPack
-        << u8" │ " << right << setw(13) << totalAll
-        << u8" ║\n";
+         << u8" │ " << right << setw(14) << totalTreat
+         << u8" │ " << right << setw(12) << totalPack
+         << u8" │ " << right << setw(13) << totalAll
+         << u8" ║\n";
     cout << u8"╚════════════════════════════════════════════════════════════════════════════════════╝\n";
     return true;
+}
+
+// 5. View Expert Bonus
+int adminViewExpertBonus(const Config& cfg, Booking bookings[], int bkCount, Expert experts[], int expertN) {
+
+    if (bkCount <= 0) {
+        cout << "\nNo bookings found.\n";
+        return 0;
+    }
+
+    cout << "\n";
+    cout << u8"╔═══════════════════════════════════════════════════════════════════════════════════════╗\n";
+    cout << u8"║                              Bonus Report – December 2025                             ║\n";
+    cout << u8"╚═══════════════════════════════════════════════════════════════════════════════════════╝\n\n";
+
+    cout << u8"╔══════════════════════════════════════════════════════════════════════════════════════╗\n";
+    cout << u8"║ " << left << setw(15) << "Expert"
+         << u8"│ " << setw(9) << "Treat Hrs"
+         << u8"│ " << setw(11) << "Consult Hrs"
+         << u8"│ " << setw(9) << "Total Hrs"
+         << u8"│ " << setw(12) << "Service (RM)"
+         << u8"│ " << setw(6) << " Rate"
+         << u8"│ " << setw(10) << "Bonus (RM)" << u8" ║\n";
+    cout << u8"╟────────────────┼──────────┼────────────┼──────────┼─────────────┼───────┼────────────╢\n";
+
+
+    for (int e = 0; e < expertN; ++e) {
+        expertBonus bi = calculateBonus(cfg, experts[e].id, bookings, bkCount);
+
+        cout << u8"║ " << left << setw(14) << experts[e].name
+            << u8" │ " << right << setw(8) << fixed << setprecision(0) << bi.treatHrs
+            << u8" │ " << right << setw(10) << bi.consultHrs
+            << u8" │ " << right << setw(8) << bi.totalHrs
+            << u8" │ " << right << setw(10) << fixed << setprecision(2) << bi.serviceRM << right << setw(6)
+            << u8" │ " << right << setw(3) << (int)(bi.rate * 100) << " %"
+			<< u8" │ " << right << setw(8) << fixed << setprecision(2) << bi.bonusRM << right << setw(7)
+            << u8" ║\n";
+    }
+
+    cout << u8"╚══════════════════════════════════════════════════════════════════════════════════════╝\n";
+    return 1;
+}
+
+// 6. View Expert Monthly Salary
+//=== Helper function to calculate monthly profit ===
+profitInfo calcPerMthProfit(Booking bookings[], int bkCount, int year, int month) {
+    double consult = 0, treat = 0, pack = 0;
+
+    for (int b = 0; b < bkCount; ++b) {
+        int y, m, d;
+        if (!parseDate(bookings[b].date, y, m, d)) continue;
+        if (y != year || m != month) continue;
+
+        double share = bookings[b].price * 0.70; // company’s profit
+
+        switch (bookings[b].serviceId) {
+        case 100: // Foot Massage
+        case 101: // Full Body
+        case 102: // Hot Stone
+            treat += share;
+            break;
+        case 103: // Package A
+        case 104: // Package B
+            pack += share;
+            break;
+        default:
+            if (bookings[b].hasConsultation)
+                consult += share;
+            else
+                treat += share;
+            break;
+        }
+    }
+
+    return { consult, treat, pack, consult + treat + pack };
+}
+//=== Helper function to calculate expert net salary===
+SalaryInfo calculateSalary(const Config& cfg, int expertId, Booking bookings[], int bkCount) {
+   expertBonus bi = calculateBonus(cfg, expertId, bookings, bkCount);
+
+    double commission = bi.serviceRM * 0.30; // expert’s cut
+    double totalPay = commission + bi.bonusRM;
+
+    return { bi.serviceRM, commission, bi.bonusRM, totalPay };
+}
+
+int viewProfitAndExpertMonthlySalary(const Config& cfg, Booking bookings[], int bkCount, Expert experts[], int expertN, const std::string& ym) {
+
+    if (bkCount <= 0) {
+        cout << "\nNo bookings found.\n";
+        return 0;
+    }
+
+    int year, month;
+    char dash;
+    std::istringstream iss(ym);
+    if (!(iss >> year >> dash >> month) || dash != '-' || month < 1 || month > 12) {
+        cout << "Invalid input! Use YYYY-MM format.\n";
+        return 0;
+    }
+
+    // check if bookings exist for this month
+    bool found = false;
+    for (int b = 0; b < bkCount; ++b) {
+        int y, m, d;
+        if (!parseDate(bookings[b].date, y, m, d)) continue;
+        if (y == year && m == month) { found = true; break; }
+    }
+
+    if (!found) {
+        cout << "\nNo bookings found for " << year << "-" << setw(2) << setfill('0') << month << ".\n";
+        return 0;
+    }
+
+    // ===== Table 1: Expert Salary Table =====
+    cout << "\n";
+    cout << u8"╔════════════════════════════════════════════════════════════════════╗\n";
+    cout << u8"║              Expert Monthly Salary Report – " << year << "-" << setw(2) << setfill('0') << month << u8"                ║\n";
+    cout << u8"╚════════════════════════════════════════════════════════════════════╝\n\n";
+    cout << setfill(' ');
+
+    cout << u8"╔════════════════════════════════════════════════════════════════════╗\n";
+    cout << u8"║ " << left << setw(15) << "Expert"
+         << u8"│ " << setw(11) << "Sales (RM)"
+         << u8"│ " << setw(11) << "Commission"
+         << u8"│ " << setw(7) << "Bonus"
+         << u8"│ " << setw(12) << " Total Salary" << u8"  ║\n";
+    cout << u8"╟────────────────┼────────────┼────────────┼────────┼────────────────╢\n";
+
+    double totalSales = 0, totalComm = 0, totalBonus = 0, totalSalary = 0;
+    for (int e = 0; e < expertN; ++e) {
+        SalaryInfo si = calculateSalary(cfg, experts[e].id, bookings, bkCount);
+
+        totalSales += si.serviceRM;
+        totalComm += si.commission;
+        totalBonus += si.bonus;
+        totalSalary += si.totalPay;
+
+        cout << u8"║ " << left << setw(15) << experts[e].name
+             << u8"│ " << right << setw(10) << fixed << setprecision(2) << si.serviceRM
+             << u8" │ " << right << setw(9) << si.commission
+             << u8"  │ " << right << setw(6)  << si.bonus
+             << u8" │ " << right << setw(12) << si.totalPay
+             << u8"   ║\n";
+    }
+    cout << u8"╟────────────────┼────────────┼────────────┼────────┼────────────────╢\n";
+    cout << u8"║ " << left << setw(15) << "TOTAL"
+         << u8"│ " << right << setw(10) << totalSales
+         << u8" │ " << right << setw(9) << totalComm
+         << u8"  │ " << right << setw(6) << totalBonus
+         << u8" │ " << right << setw(12) << totalSalary
+         << u8"   ║\n";
+    cout << u8"╚════════════════════════════════════════════════════════════════════╝\n\n";
+
+    // ===== Table 2: Company Profit Table =====
+    profitInfo pi = calcPerMthProfit(bookings, bkCount, year, month);
+
+	cout << "\n";
+    cout << u8"╔═══════════════════════════════════════╗\n";
+    cout << u8"║  Company Profit Breakdown : " << year << "-" << setw(2) << setfill('0') << month << u8"   ║\n";   
+    cout << setfill(' ');
+    cout << u8"╚═══════════════════════════════════════╝\n\n";
+
+    cout << u8"╔══════════════════════════════════╗\n";
+    cout << u8"║ " << left << setw(15) << "Service Type" << u8"│ " << setw(15) << "  Profit (RM)" << u8" ║\n";
+    cout << u8"╟────────────────┼─────────────────╢\n";
+
+    cout << u8"║ " << left << setw(15) << "Consultation" << u8"│ " << right << setw(13) << fixed << setprecision(2) << pi.consultRM << u8"   ║\n";
+    cout << u8"║ " << left << setw(15) << "Treatment" << u8"│ " << right << setw(13) << pi.treatRM << u8"   ║\n";
+    cout << u8"║ " << left << setw(15) << "Package" << u8"│ " << right << setw(13) << pi.packageRM << u8"   ║\n";
+    cout << u8"╟────────────────┼─────────────────╢\n";
+    cout << u8"║ " << left << setw(15) << "TOTAL" << u8"│ " << right << setw(13) << pi.totalRM << u8"   ║\n";
+    cout << u8"╚══════════════════════════════════╝\n";
+
+    return 1;
 }
 
 // =================================================================================================
@@ -2260,7 +2420,7 @@ int main() {
             cout << "2. Expert" << endl;
             cout << "3. Admin" << endl;
             cout << "4. Exit" << endl;
-            cout << "\nSelect role: ";
+            cout << "\nSelect role ( 1-3 | 4 to exit): ";
             getline(cin, roleInput);
             if (isNumeric(roleInput)) roleChoice = stoi(roleInput);
             else roleChoice = 0;
@@ -2313,7 +2473,8 @@ int main() {
                     case 3:
                     {
                         string checkDate;
-                        cout << "Enter a December 2025 date to check availability (YYYY-MM-DD): ";
+                        showCalendar();
+                        cout << "\nEnter a December 2025 date to check availability (YYYY-MM-DD): ";
                         getline(cin, checkDate);
 
                         // Validate date
@@ -2337,7 +2498,7 @@ int main() {
                         pauseForMenu();
                         break;
                     case 6: // Logout
-                        cout << "Logging out..." << endl;
+                        cout << "\n^-^Thanks for visiting A.S.M.R!! Logging out..." << endl;
                         this_thread::sleep_for(chrono::seconds(1));
                         break;
                     }
@@ -2349,7 +2510,7 @@ int main() {
         case 2: {
             int idx = expertLogin(experts, expertN);
             if (idx < 0) {
-                cout << "Invalid login.\n";
+                cout << "\nInvalid login! Access denied.\n";
                 string prompt = "Press ENTER to continue...";
                 bool empty = true;
 				string aPass;
@@ -2360,7 +2521,6 @@ int main() {
             int expertMenuChoice = -1;
             do {
                 goToPage();
-                cout << "\nWelcome, " << experts[idx].name << "!\n";
                 expertMenuChoice = expertMenu();
 
                 switch (expertMenuChoice) {
@@ -2444,9 +2604,8 @@ int main() {
                     break;
                 }
                 case 5:
-                    cout << "Goodbye!\n";
-                    
-                    pauseForMenu();
+                    cout << "\nLogging out expert system..." << endl;
+                    this_thread::sleep_for(chrono::seconds(1));
                     break;
                 }
             } while (expertMenuChoice != 5);
@@ -2459,7 +2618,6 @@ int main() {
                 do {
                     adminMenuChoice = adminMenu(); // show menu, get input
                     switch (adminMenuChoice) {
-                        // Replace this block in your adminMenu() switch-case for case 1:
                     case 1: {
                         goToPage();
                         cout << u8"╔═══════════════════════════════════════════════════╗\n";
@@ -2468,7 +2626,7 @@ int main() {
 
                         // 1. Prompt for expert name search
                         string search;
-                        cout << "Enter expert name (or part of name) to search: ";
+                        cout << "Search for expert: ";
                         getline(cin, search);
 
                         // Convert search string to lowercase manually
@@ -2491,22 +2649,25 @@ int main() {
                         }
 
                         if (matchCount == 0) {
-                            cout << "No experts found matching \"" << search << "\".\n";
+                            cout << "No experts found matching. \"" << search << "\".\n";
                             pauseForMenu();
                             break;
                         }
 
                         // 3. Display matches
                         cout << "\nMatching experts:\n";
+                        this_thread::sleep_for(chrono::seconds(1));
                         for (int i = 0; i < matchCount; ++i) {
-                            cout << i + 1 << ". " << experts[matches[i]].name << " (ID: " << matches[i] << ")\n";
+                            cout << i + 1 << ". " << experts[matches[i]].name << " (ID: " << experts[matches[i]].id << ")\n";
                         }
 
                         // 4. Prompt user to select one
-                        int choice = getValidNumericInput("Select expert by number (0 to go back): ", 0, matchCount);
-                        if (choice == 0) {
-                            break; // Exit to previous menu
-                        }
+                        int  choice = getValidNumericInput(
+                            "\nSelect expert (1-" + to_string(matchCount) + "| or -1 to go back): ", 1, matchCount, true);
+
+                        if (choice == -1) break;
+
+                        // Map menu choice → actual expert ID
                         int expID = matches[choice - 1];
 
                         // 5. Proceed as before
@@ -2519,7 +2680,8 @@ int main() {
                         while (true) {
                             cout << "Enter any December 2025 date (YYYY-MM-DD) for the week to view: ";
                             getline(cin, weekDate);
-                            // Use robust validation
+
+							// Validate format and range
                             if (isValidDate(weekDate) && isDecember(weekDate)) {
                                 int y, m, d;
                                 if (parseDate(weekDate, y, m, d) && y == 2025 && m == 12 && d >= 1 && d <= 31) {
@@ -2527,7 +2689,9 @@ int main() {
                                 }
                             }
                             cout << "Invalid date! Please enter a valid December 2025 date in YYYY-MM-DD format.\n";
+                            
                         }
+                        goToPage();
                         string monday = mondayOfWeek(weekDate);
                         adminViewOverallSchedule(cfg, bookings, bkCount, experts, expertN, monday);
                         pauseForMenu();
@@ -2535,7 +2699,6 @@ int main() {
                     }
                     case 3:
                         viewCustomerList(bookings, bkCount, experts, expertN, services, svcN);
-                        
                         pauseForMenu();
                         break;
                     case 4: {
@@ -2567,19 +2730,25 @@ int main() {
                         break;
                     }
                     case 5: {
-                        string idStr;
-                        cout << "Enter Expert ID (0: June, 1: Bryan, 2: Amy): ";
-                        getline(cin, idStr);
-                        int id = stoi(idStr);
-                        cout << "Expert Bonus: RM" << fixed << setprecision(2) << adminViewExpertBonus(bookings, bkCount, experts, expertN, id) << "\n";
+                        goToPage();
+                        adminViewExpertBonus(cfg, bookings, bkCount, experts, expertN);
                         pauseForMenu();
                         break;
                     }
-                    case 6:
-                        cout << "\n=== Monthly Summary Report ===\n";
-                        cout << "Total Sales: RM" << fixed << setprecision(2) << adminMonthlySummary(bookings, bkCount) << "\n";
+                    case 6: {
+                        goToPage();
+                        cout << u8"╔═══════════════════════════════════════════════════╗\n";
+                        cout << u8"║     View Expert Monthly Salary & Company Profit   ║\n";
+                        cout << u8"╚═══════════════════════════════════════════════════╝\n";
+                        string ym;
+                        cout << "Enter month (YYYY-MM): ";
+                        cin >> ym;
+                        cin.get();
+                        goToPage();
+                        viewProfitAndExpertMonthlySalary(cfg, bookings, bkCount, experts, expertN, ym);
                         pauseForMenu();
                         break;
+                    }
                     case 7: {
                         cout << "\nLogging out admin system..." << endl;
                         this_thread::sleep_for(chrono::seconds(1));
@@ -2596,7 +2765,7 @@ int main() {
         }
 
         case 4: {
-            cout << "\nThanks for using our system! Exiting ...\n" << endl;
+            cout << "\nSee you next time ! Exiting ...\n" << endl;
             this_thread::sleep_for(chrono::seconds(1)); // Pause for 2 seconds before returning to main menu
             break;
         }
