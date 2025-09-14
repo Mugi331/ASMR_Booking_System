@@ -561,7 +561,8 @@ void goToPage() {
 
 void pauseForMenu() {
     cout << "\nPress ENTER to return ...";
-    cin.get();
+    string dummy;
+    getline(cin, dummy);
 }
 
 // =================== File Handling ===================
@@ -2681,20 +2682,22 @@ int main() {
                             cout << "Enter any December 2025 date (YYYY-MM-DD) for the week to view: ";
                             getline(cin, weekDate);
 
+							if (weekDate == "-1") break; 
 							// Validate format and range
-                            if (isValidDate(weekDate) && isDecember(weekDate)) {
+                            else if (isValidDate(weekDate) && isDecember(weekDate)) {
                                 int y, m, d;
                                 if (parseDate(weekDate, y, m, d) && y == 2025 && m == 12 && d >= 1 && d <= 31) {
+                                    goToPage();
+                                    string monday = mondayOfWeek(weekDate);
+                                    adminViewOverallSchedule(cfg, bookings, bkCount, experts, expertN, monday);
+                                    pauseForMenu();
                                     break;
                                 }
                             }
-                            cout << "Invalid date! Please enter a valid December 2025 date in YYYY-MM-DD format.\n";
+                            else
+                                cout << "Invalid date! Please enter a valid December 2025 date in YYYY-MM-DD format.\n";
                             
                         }
-                        goToPage();
-                        string monday = mondayOfWeek(weekDate);
-                        adminViewOverallSchedule(cfg, bookings, bkCount, experts, expertN, monday);
-                        pauseForMenu();
                         break;
                     }
                     case 3:
